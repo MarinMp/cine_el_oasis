@@ -3,6 +3,9 @@
 -- Avance 1 - Nucleo transaccional (PostgreSQL)
 -- Script 01: 01_creacion_tablas.sql
 -- Integrantes: Maria Paula Marin Soler, Justin Felipe Narvaez Gutierrez
+-- ---------------------------------------------------------------------
+-- Se ejecuta de primeras.
+-- Orden de ejecucion: 01 -> 03 -> 02 -> 04 -> 05
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
