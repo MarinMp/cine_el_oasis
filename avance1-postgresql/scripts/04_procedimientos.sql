@@ -12,7 +12,7 @@
 -- Procedimiento que reprograma la funcion mas vendida de la 
 -- semana en el fin de semana.
 CREATE OR REPLACE PROCEDURE sp_reprogramar_funcion_mas_vendida(
-    p_inicio_semana   DATE,
+    p_inicio_semana DATE,
     p_final_de_semana DATE,
     INOUT p_nueva_fecha DATE
 ) AS $$
@@ -26,12 +26,12 @@ BEGIN
            f.id_sala,
            f.version_proyeccion,
            SUM(dv.cantidad) AS boletas_vendidas
-    INTO   funcionMasVista
-    FROM          funcion        f
-    INNER JOIN    venta          v  ON v.id_funcion = f.id_funcion
-    INNER JOIN    detalle_venta  dv ON dv.id_venta  = v.id_venta
-    WHERE         f.fecha        BETWEEN p_inicio_semana AND p_final_de_semana
-    GROUP BY      f.id_funcion, f.fecha, f.hora_inicio, f.id_pelicula,
+    INTO funcionMasVista
+    FROM funcion f
+    INNER JOIN venta v  ON v.id_funcion = f.id_funcion
+    INNER JOIN detalle_venta dv ON dv.id_venta  = v.id_venta
+    WHERE f.fecha BETWEEN p_inicio_semana AND p_final_de_semana
+    GROUP BY f.id_funcion, f.fecha, f.hora_inicio, f.id_pelicula,
                   f.id_sala, f.version_proyeccion
     ORDER BY SUM(dv.cantidad) DESC
     LIMIT 1;
@@ -69,11 +69,11 @@ $$ LANGUAGE plpgsql;
 -- de la semana.
 CREATE OR REPLACE PROCEDURE sp_retirar_pelicula_menos_vista(
     p_inicio DATE,
-    p_fin    DATE
+    p_fin DATE
 ) AS $$
 DECLARE
     peliculaMenosVista RECORD;
-    v_retiradas        INTEGER;
+    v_retiradas INTEGER;
 BEGIN
     IF p_inicio > p_fin THEN
         RAISE EXCEPTION 'La fecha de inicio (%) no puede ser posterior a la fecha fin (%)',
@@ -82,12 +82,12 @@ BEGIN
     SELECT p.id_pelicula,
            p.titulo,
            COALESCE(SUM(dv.cantidad), 0) AS numero_ventas
-    INTO       peliculaMenosVista
-    FROM       pelicula p
-    LEFT JOIN  funcion  f       ON  p.id_pelicula = f.id_pelicula
-                                AND f.fecha BETWEEN p_inicio AND p_fin
-    LEFT JOIN  venta v          ON  v.id_funcion = f.id_funcion
-    LEFT JOIN  detalle_venta dv ON  dv.id_venta  = v.id_venta
+    INTO peliculaMenosVista
+    FROM pelicula p
+    LEFT JOIN funcion f ON  p.id_pelicula = f.id_pelicula
+                        AND f.fecha BETWEEN p_inicio AND p_fin
+    LEFT JOIN  venta v ON  v.id_funcion = f.id_funcion
+    LEFT JOIN  detalle_venta dv ON  dv.id_venta = v.id_venta
     GROUP BY p.id_pelicula, p.titulo
     ORDER BY COALESCE(SUM(dv.cantidad), 0) ASC, p.id_pelicula ASC
     LIMIT 1;
@@ -97,10 +97,10 @@ BEGIN
     RAISE NOTICE 'Menos vista entre % y %: "%" con % boletas',
         p_inicio, p_fin, peliculaMenosVista.titulo, peliculaMenosVista.numero_ventas;
     IF EXISTS (SELECT 1
-                 FROM       funcion f
+                 FROM funcion f
                  INNER JOIN venta   v ON v.id_funcion = f.id_funcion
-                WHERE      f.id_pelicula = peliculaMenosVista.id_pelicula
-                  AND      f.fecha > CURRENT_DATE) THEN
+                WHERE f.id_pelicula = peliculaMenosVista.id_pelicula
+                  AND f.fecha > CURRENT_DATE) THEN
         RAISE EXCEPTION 'No se puede retirar "%": tiene funciones futuras con boletas vendidas',
             peliculaMenosVista.titulo;
     END IF;
