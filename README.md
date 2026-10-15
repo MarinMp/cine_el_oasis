@@ -15,18 +15,18 @@ Cine El Oasis es un centro cinematográfico ficticio ubicado en Bogotá, dedicad
 
 ```
 cine_el_oasis/
-└── avance1-postgresql/
-|   ├── modelo-er/
-│   |   ├── mer_el_oasis.png
-|   ├── modelo-relacional/
-│   |   ├── mr_el_oasis.png
-|   ├── scripts/
-│   |   ├── 01_creacion_tablas.sql
-│   |   ├── 02_datos_prueba.sql
-│   |   ├── 03_triggers.sql
-│   |   ├── 04_procedimientos.sql
-│   |   └── 05_consultas.sql
-|   └── evidencias/
+├── avance1-postgresql/
+│   ├── modelo-er/
+│   │   └── mer_el_oasis.png
+│   ├── modelo-relacional/
+│   │   └── mr_el_oasis.png
+│   ├── scripts/
+│   │   ├── 01_creacion_tablas.sql
+│   │   ├── 02_datos_prueba.sql
+│   │   ├── 03_triggers.sql
+│   │   ├── 04_procedimientos.sql
+│   │   └── 05_consultas.sql
+│   └── evidencias/
 └── README.md
 ```
 
@@ -48,8 +48,22 @@ cine_el_oasis/
 
 ### Modelos
 
-- **Modelo entidad-relación:** 18 entidades y 20 relaciones (18 de uno a muchos y 2 de muchos a muchos. Incluye las 8 entidades exigidas, la entidad adicional `PELICULA` y 9 catálogos.
+- **Modelo entidad-relación:** 18 entidades y 20 relaciones (18 de uno a muchos y 2 de muchos a muchos). 
 - **Modelo relacional:** 20 tablas normalizadas hasta la tercera forma normal (3FN), con llaves primarias, llaves foráneas, valores únicos y obligatorios.
+
+### Contenido de los scripts
+
+| Script | Contenido |
+|---|---|
+| `01_creacion_tablas.sql` | 20 tablas con llaves primarias, foráneas, restricciones `CHECK`, `UNIQUE` e índices |
+| `02_datos_prueba.sql` | 10 películas, 37 actores y directores, 40 funciones, 35 espectadores y 59 ventas |
+| `03_triggers.sql` | 10 triggers en 7 tablas: programación de funciones, auditoría, total de la venta, precio de la boleta, validación de ventas, protección de salas y validación de contratos |
+| `04_procedimientos.sql` | 3 procedimientos: reprogramación de la función más vendida, retiro de la película menos vista y reporte de ventas por película |
+| `05_consultas.sql` | 3 consultas: ocupación por función, espectadores con gasto superior al promedio y actores y directores en más de una película |
+
+### Tecnología
+
+- PostgreSQL 16, ejecutado en [Neon](https://neon.tech).
 
 ### Orden de ejecución de los scripts
 
