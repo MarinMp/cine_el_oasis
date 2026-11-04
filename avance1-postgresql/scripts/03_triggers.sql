@@ -10,21 +10,6 @@
 -- Orden de ejecucion: 01 -> 03 -> 02 -> 04 -> 05
 -- =====================================================================
 
-
--- Tabla donde se guarda el historial de cambios de las tablas auditadas
-CREATE TABLE IF NOT EXISTS LOG_AUDITORIA (
-    ID_LOG_AUDITORIA BIGINT GENERATED ALWAYS AS IDENTITY,
-    TABLA_AFECTADA VARCHAR(30) NOT NULL,
-    OPERACION VARCHAR(10) NOT NULL,
-    USUARIO_DE_SESION VARCHAR(60) NOT NULL DEFAULT CURRENT_USER,
-    FECHA_HORA TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    DATOS_ANTES JSONB,
-    DATOS_DESPUES JSONB,
-    CONSTRAINT LOG_AUDITORIA_PK PRIMARY KEY (ID_LOG_AUDITORIA),
-    CONSTRAINT LOG_AUDITORIA_OPERACION_CK CHECK (OPERACION IN ('INSERT', 'UPDATE', 'DELETE'))
-);
-
-
 -- Trigger que calcula la hora de fin de la funcion y valida la pelicula,
 -- la sala, que termine el mismo dia y los 20 minutos de limpieza
 CREATE OR REPLACE FUNCTION fn_funcion_programacion()
@@ -86,7 +71,6 @@ BEFORE INSERT OR UPDATE ON FUNCION
 FOR EACH ROW
 EXECUTE FUNCTION fn_funcion_programacion();
 
-
 -- Trigger que guarda en LOG_AUDITORIA cada insercion, actualizacion
 -- o eliminacion, con los datos de antes y de despues
 CREATE OR REPLACE FUNCTION fn_auditoria()
@@ -138,7 +122,6 @@ AFTER INSERT OR UPDATE OR DELETE ON STAFF
 FOR EACH ROW
 EXECUTE FUNCTION fn_auditoria();
 
-
 -- Trigger que recalcula el total de la venta cada vez que se agrega,
 -- cambia o elimina una boleta del detalle
 CREATE OR REPLACE FUNCTION fn_detalle_venta_total()
@@ -165,7 +148,6 @@ CREATE TRIGGER trg_detalle_venta_total
 AFTER INSERT OR UPDATE OR DELETE ON DETALLE_VENTA
 FOR EACH ROW
 EXECUTE FUNCTION fn_detalle_venta_total();
-
 
 -- Trigger que valida la boleta (tipo de sala, aforo y maximo 10 por compra)
 -- y calcula su precio, con 50% de descuento si se compra un miercoles para 
@@ -258,7 +240,6 @@ BEFORE INSERT OR UPDATE ON DETALLE_VENTA
 FOR EACH ROW
 EXECUTE FUNCTION fn_detalle_venta_boleta();
 
-
 -- Trigger que valida la venta, no se vende para una funcion que ya empezo
 -- y en taquilla la venta la debe registrar un empleado ACTIVO
 CREATE OR REPLACE FUNCTION fn_venta_validar()
@@ -313,7 +294,6 @@ BEFORE INSERT OR UPDATE OF FECHA_HORA, ID_FUNCION, ID_STAFF, CANAL ON VENTA
 FOR EACH ROW
 EXECUTE FUNCTION fn_venta_validar();
  
-
 -- Trigger que protege las funciones programadas una sala con funciones 
 -- futuras no pasa a MANTENIMIENTO y su capacidad no puede quedar por 
 -- debajo de las boletas ya vendidas.
@@ -368,7 +348,6 @@ CREATE OR REPLACE TRIGGER trg_sala_proteger
 BEFORE UPDATE OF ESTADO, CAPACIDAD ON SALA
 FOR EACH ROW
 EXECUTE FUNCTION fn_sala_proteger();
-
 
 -- Trigger que valida el contrato: un ACTOR debe tener personaje, un DIRECTOR no,
 -- y el contrato debe iniciar antes del estreno de la pelicula.
