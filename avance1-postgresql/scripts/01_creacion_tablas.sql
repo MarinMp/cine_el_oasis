@@ -11,6 +11,7 @@
 -- ---------------------------------------------------------------------
 -- Limpieza base de datos
 -- ---------------------------------------------------------------------
+DROP TABLE IF EXISTS LOG_AUDITORIA CASCADE;
 DROP TABLE IF EXISTS DETALLE_VENTA CASCADE;
 DROP TABLE IF EXISTS ASIGNACION CASCADE;
 DROP TABLE IF EXISTS VENTA CASCADE;
@@ -303,7 +304,7 @@ CREATE TABLE VENTA (
 );
 
 -- =====================================================================
--- Tablas intermedias
+-- Tablas intermedias y log_auditoria
 -- =====================================================================
 
 -- Detalle de la venta (M:N entre VENTA - TIPO_BOLETA)
@@ -331,6 +332,19 @@ CREATE TABLE ASIGNACION (
         REFERENCES FUNCION (ID_FUNCION),
     CONSTRAINT ASIGNACION_STAFF_FK FOREIGN KEY (ID_STAFF)
         REFERENCES STAFF (ID_STAFF)
+);
+
+-- Tabla de soporte: Historial de cambios que registra el trigger de auditoria
+CREATE TABLE LOG_AUDITORIA (
+   ID_LOG_AUDITORIA BIGINT GENERATED ALWAYS AS IDENTITY,
+   TABLA_AFECTADA VARCHAR(30) NOT NULL,
+   OPERACION VARCHAR(10) NOT NULL,
+   USUARIO_DE_SESION VARCHAR(60) NOT NULL DEFAULT CURRENT_USER,
+   FECHA_HORA TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+   DATOS_ANTES JSONB,
+   DATOS_DESPUES JSONB,
+   CONSTRAINT LOG_AUDITORIA_PK PRIMARY KEY (ID_LOG_AUDITORIA),
+   CONSTRAINT LOG_AUDITORIA_OPERACION_CK CHECK (OPERACION IN ('INSERT', 'UPDATE', 'DELETE'))
 );
 
 -- =====================================================================
