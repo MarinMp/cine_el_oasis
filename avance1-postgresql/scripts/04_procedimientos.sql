@@ -203,46 +203,41 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-
+-- Procedimiento 3 (reporte con agregacion)
 -- Reporte de ventas por pelicula en un periodo: funciones, boletas, 
 -- dinero recaudado, descuento del miercoles y boletas vendidas en taquilla y en linea.
-CREATE OR REPLACE FUNCTION fn_reporte_ventas_pelicula(p_inicio DATE, p_fin DATE)
-RETURNS TABLE (
-    PELICULA TEXT,
-    FUNCIONES BIGINT,
-    BOLETAS BIGINT,
-    RECAUDO NUMERIC,
-    DESCUENTO_MIERCOLES NUMERIC,
-    BOLETAS_TAQUILLA BIGINT,
-    BOLETAS_EN_LINEA BIGINT
+CREATE OR REPLACE PROCEDURE sp_reporte_ventas_pelicula(
+    p_inicio DATE,
+    p_fin DATE,
+    INOUT p_cursor REFCURSOR DEFAULT 'rpt_ventas'
 ) AS $$
 BEGIN
     IF p_inicio IS NULL OR p_fin IS NULL THEN
         RAISE EXCEPTION 'Debe indicar la fecha de inicio y la fecha de fin del periodo'
-        USING HINT = 'Ejemplo: SELECT * FROM fn_reporte_ventas_pelicula(''2026-10-12'', ''2026-10-18'');';
+        USING HINT = 'Ejemplo: CALL sp_reporte_ventas_pelicula(''2026-10-12'', ''2026-10-18'', ''rpt_ventas'');';
     END IF;
-
+ 
     IF p_inicio > p_fin THEN
         RAISE EXCEPTION 'Periodo invalido: la fecha de inicio (%) es posterior a la fecha de fin (%)', p_inicio, p_fin
         USING HINT = 'Revise el orden de las fechas';
     END IF;
-
+ 
     IF NOT EXISTS (SELECT 1 FROM FUNCION WHERE FECHA BETWEEN p_inicio AND p_fin) THEN
         RAISE EXCEPTION 'No hay funciones programadas entre el % y el %', p_inicio, p_fin
         USING HINT = 'Elija un periodo con funciones en la cartelera';
     END IF;
-
+ 
     BEGIN
-        RETURN QUERY
-        SELECT P.TITULO::TEXT,
-               COUNT(DISTINCT F.ID_FUNCION),
-               COALESCE(SUM(D.CANTIDAD), 0)::BIGINT,
-               COALESCE(SUM(D.CANTIDAD * D.PRECIO_UNITARIO), 0),
+        OPEN p_cursor FOR
+        SELECT P.TITULO::TEXT                                  AS PELICULA,
+               COUNT(DISTINCT F.ID_FUNCION)                    AS FUNCIONES,
+               COALESCE(SUM(D.CANTIDAD), 0)::BIGINT            AS BOLETAS,
+               COALESCE(SUM(D.CANTIDAD * D.PRECIO_UNITARIO), 0) AS RECAUDO,
                COALESCE(SUM(D.CANTIDAD * D.PRECIO_UNITARIO)
                    FILTER (WHERE EXTRACT(ISODOW FROM V.FECHA_HORA) = 3
-                   AND V.FECHA_HORA::DATE = F.FECHA), 0),
-               COALESCE(SUM(D.CANTIDAD) FILTER (WHERE V.CANAL = 'TAQUILLA'), 0)::BIGINT,
-               COALESCE(SUM(D.CANTIDAD) FILTER (WHERE V.CANAL = 'EN LINEA'), 0)::BIGINT
+                   AND V.FECHA_HORA::DATE = F.FECHA), 0)       AS DESCUENTO_MIERCOLES,
+               COALESCE(SUM(D.CANTIDAD) FILTER (WHERE V.CANAL = 'TAQUILLA'), 0)::BIGINT AS BOLETAS_TAQUILLA,
+               COALESCE(SUM(D.CANTIDAD) FILTER (WHERE V.CANAL = 'EN LINEA'), 0)::BIGINT AS BOLETAS_EN_LINEA
         FROM PELICULA P
         JOIN FUNCION F ON F.ID_PELICULA = P.ID_PELICULA
             AND F.FECHA BETWEEN p_inicio AND p_fin
@@ -254,5 +249,7 @@ BEGIN
         WHEN OTHERS THEN
             RAISE EXCEPTION 'No se pudo generar el reporte de ventas: %', SQLERRM;
     END;
+ 
+    RAISE NOTICE 'Reporte de ventas del % al % listo en el cursor "%"', p_inicio, p_fin, p_cursor;
 END;
 $$ LANGUAGE plpgsql;
