@@ -116,8 +116,7 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- Procedimiento 2 (mantenimiento / operacion)
--- Retira de cartelera la pelicula menos vista 
--- de la semana.
+-- Retira de cartelera la pelicula menos vista de la semana.
 CREATE OR REPLACE PROCEDURE sp_retirar_pelicula_menos_vista(
     p_inicio DATE,
     p_fin DATE
@@ -125,50 +124,82 @@ CREATE OR REPLACE PROCEDURE sp_retirar_pelicula_menos_vista(
 DECLARE
     peliculaMenosVista RECORD;
     v_retiradas INTEGER;
+    v_asignaciones INTEGER;
 BEGIN
+    IF p_inicio IS NULL OR p_fin IS NULL THEN
+        RAISE EXCEPTION 'Debe indicar la fecha de inicio y la fecha de fin del periodo'
+        USING HINT = 'Ejemplo: CALL sp_retirar_pelicula_menos_vista(''2026-10-12'', ''2026-10-18'');';
+    END IF;
+ 
     IF p_inicio > p_fin THEN
         RAISE EXCEPTION 'La fecha de inicio (%) no puede ser posterior a la fecha fin (%)',
-            p_inicio, p_fin;
+            p_inicio, p_fin
+        USING HINT = 'Revise el orden de las fechas';
     END IF;
+ 
+    -- Pelicula con menos boletas vendidas entre las que tuvieron
+    -- funciones en el periodo
     SELECT p.id_pelicula,
            p.titulo,
-           COALESCE(SUM(dv.cantidad), 0) AS numero_ventas
+           COALESCE(SUM(dv.cantidad), 0) AS numero_boletas
     INTO peliculaMenosVista
     FROM pelicula p
-    LEFT JOIN funcion f ON  p.id_pelicula = f.id_pelicula
-                        AND f.fecha BETWEEN p_inicio AND p_fin
+    INNER JOIN funcion f ON  f.id_pelicula = p.id_pelicula
+                         AND f.fecha BETWEEN p_inicio AND p_fin
     LEFT JOIN  venta v ON  v.id_funcion = f.id_funcion
     LEFT JOIN  detalle_venta dv ON  dv.id_venta = v.id_venta
     GROUP BY p.id_pelicula, p.titulo
     ORDER BY COALESCE(SUM(dv.cantidad), 0) ASC, p.id_pelicula ASC
     LIMIT 1;
+ 
     IF NOT FOUND THEN
-        RAISE EXCEPTION 'No hay peliculas en el catalogo';
+        RAISE EXCEPTION 'No hay funciones programadas entre % y %', p_inicio, p_fin
+        USING HINT = 'Elija un periodo con funciones en la cartelera';
     END IF;
+ 
     RAISE NOTICE 'Menos vista entre % y %: "%" con % boletas',
-        p_inicio, p_fin, peliculaMenosVista.titulo, peliculaMenosVista.numero_ventas;
+        p_inicio, p_fin, peliculaMenosVista.titulo, peliculaMenosVista.numero_boletas;
+ 
+    -- No se cancela nada si alguna funcion futura ya tiene ventas
     IF EXISTS (SELECT 1
                  FROM funcion f
-                 INNER JOIN venta   v ON v.id_funcion = f.id_funcion
+                 INNER JOIN venta v ON v.id_funcion = f.id_funcion
                 WHERE f.id_pelicula = peliculaMenosVista.id_pelicula
                   AND f.fecha > CURRENT_DATE) THEN
         RAISE EXCEPTION 'No se puede retirar "%": tiene funciones futuras con boletas vendidas',
-            peliculaMenosVista.titulo;
+            peliculaMenosVista.titulo
+        USING HINT = 'Espere a que pasen esas funciones o gestione primero sus ventas';
     END IF;
+ 
     BEGIN
+        -- Liberar el personal asignado a las funciones futuras
+        DELETE FROM asignacion
+         WHERE id_funcion IN (SELECT id_funcion
+                                FROM funcion
+                               WHERE id_pelicula = peliculaMenosVista.id_pelicula
+                                 AND fecha > CURRENT_DATE);
+        GET DIAGNOSTICS v_asignaciones = ROW_COUNT;
+ 
+        -- Cancelar las funciones futuras
         DELETE FROM funcion
          WHERE id_pelicula = peliculaMenosVista.id_pelicula
            AND fecha > CURRENT_DATE;
         GET DIAGNOSTICS v_retiradas = ROW_COUNT;
     EXCEPTION
         WHEN foreign_key_violation THEN
-            RAISE EXCEPTION 'No se pudo retirar "%": alguna funcion futura tiene ventas asociadas',
-                peliculaMenosVista.titulo;
+            RAISE EXCEPTION 'No se pudo retirar "%": una funcion futura sigue referenciada por otra tabla (%)',
+                peliculaMenosVista.titulo, SQLERRM;
         WHEN OTHERS THEN
             RAISE EXCEPTION 'Error inesperado [%]: %', SQLSTATE, SQLERRM;
     END;
-    RAISE NOTICE 'Retirada de cartelera "%": % funcion(es) futura(s) cancelada(s)',
-        peliculaMenosVista.titulo, v_retiradas;
+ 
+    IF v_retiradas = 0 THEN
+        RAISE NOTICE '"%" no tenia funciones futuras programadas, no se cancelo ninguna',
+            peliculaMenosVista.titulo;
+    ELSE
+        RAISE NOTICE 'Retirada de cartelera "%": % funcion(es) futura(s) cancelada(s) y % asignacion(es) de personal liberada(s)',
+            peliculaMenosVista.titulo, v_retiradas, v_asignaciones;
+    END IF;
 END;
 $$ LANGUAGE plpgsql;
 
