@@ -8,9 +8,9 @@
 -- Orden de ejecucion: 01 -> 03 -> 02 -> 04 -> 05
 -- =====================================================================
 
-
--- Procedimiento que reprograma la funcion mas vendida de la 
--- semana en el fin de semana.
+-- Procedimiento 1 (calculo / transaccion)
+-- Reprograma la funcion mas vendida de la semana en el fin de semana
+-- siguiente
 CREATE OR REPLACE PROCEDURE sp_reprogramar_funcion_mas_vendida(
     p_inicio_semana DATE,
     p_final_de_semana DATE,
@@ -18,7 +18,35 @@ CREATE OR REPLACE PROCEDURE sp_reprogramar_funcion_mas_vendida(
 ) AS $$
 DECLARE
     funcionMasVista RECORD;
+    v_nueva_funcion INTEGER;
+    v_asignaciones INTEGER;
 BEGIN
+
+    IF p_inicio_semana IS NULL OR p_final_de_semana IS NULL OR p_nueva_fecha IS NULL THEN
+        RAISE EXCEPTION 'Debe indicar el inicio y el fin de la semana y la nueva fecha'
+        USING HINT = 'Ejemplo: CALL sp_reprogramar_funcion_mas_vendida(''2026-10-12'', ''2026-10-18'', ''2026-10-24'');';
+    END IF;
+ 
+    IF p_inicio_semana > p_final_de_semana THEN
+        RAISE EXCEPTION 'Periodo invalido: el inicio (%) es posterior al fin (%)',
+            p_inicio_semana, p_final_de_semana
+        USING HINT = 'Revise el orden de las fechas';
+    END IF;
+ 
+    -- La funcion solo se reprograma un sabado (6) o domingo (7)
+    IF EXTRACT(ISODOW FROM p_nueva_fecha) NOT IN (6, 7) THEN
+        RAISE EXCEPTION 'La nueva fecha % no es sabado ni domingo', p_nueva_fecha
+        USING HINT = 'La funcion mas vendida solo se reprograma para el fin de semana';
+    END IF;
+ 
+    -- Debe ser el fin de semana siguiente a la semana analizada
+    IF p_nueva_fecha <= p_final_de_semana OR p_nueva_fecha > p_final_de_semana + 7 THEN
+        RAISE EXCEPTION 'La nueva fecha % no corresponde al fin de semana siguiente a la semana del % al %',
+            p_nueva_fecha, p_inicio_semana, p_final_de_semana
+        USING HINT = 'Elija el sabado o domingo inmediatamente posterior a la semana analizada';
+    END IF;
+ 
+    -- Funcion con mas boletas vendidas en la semana
     SELECT f.id_funcion,
            f.fecha,
            f.hora_inicio,
@@ -33,18 +61,24 @@ BEGIN
     WHERE f.fecha BETWEEN p_inicio_semana AND p_final_de_semana
     GROUP BY f.id_funcion, f.fecha, f.hora_inicio, f.id_pelicula,
                   f.id_sala, f.version_proyeccion
-    ORDER BY SUM(dv.cantidad) DESC
+    ORDER BY SUM(dv.cantidad) DESC, f.id_funcion ASC
     LIMIT 1;
+ 
     IF NOT FOUND THEN
         RAISE EXCEPTION 'No hubo ventas entre % y %',
-            p_inicio_semana, p_final_de_semana;
+            p_inicio_semana, p_final_de_semana
+        USING HINT = 'Elija una semana con funciones y boletas vendidas';
     END IF;
+ 
     RAISE NOTICE 'Funcion % del % a las % -> % boletas vendidas',
         funcionMasVista.id_funcion,
         funcionMasVista.fecha,
         funcionMasVista.hora_inicio,
         funcionMasVista.boletas_vendidas;
+ 
     BEGIN
+        -- HORA_FIN se envia en 00:00 porque el trigger trg_funcion_programacion
+        -- la calcula y valida la sala y los 20 minutos de limpieza
         INSERT INTO funcion (fecha, hora_inicio, hora_fin,
                              version_proyeccion, id_pelicula, id_sala)
         VALUES (p_nueva_fecha,
@@ -52,20 +86,37 @@ BEGIN
                 TIME '00:00',
                 funcionMasVista.version_proyeccion,
                 funcionMasVista.id_pelicula,
-                funcionMasVista.id_sala);
+                funcionMasVista.id_sala)
+        RETURNING id_funcion INTO v_nueva_funcion;
+ 
+        -- La nueva funcion queda con el mismo personal de la original
+        INSERT INTO asignacion (id_funcion, id_staff, tarea)
+        SELECT v_nueva_funcion, a.id_staff, a.tarea
+          FROM asignacion a
+         WHERE a.id_funcion = funcionMasVista.id_funcion;
+        GET DIAGNOSTICS v_asignaciones = ROW_COUNT;
     EXCEPTION
         WHEN raise_exception THEN
             RAISE EXCEPTION 'No se pudo reprogramar: %', SQLERRM;
         WHEN OTHERS THEN
             RAISE EXCEPTION 'Error desconocido [%]: %', SQLSTATE, SQLERRM;
     END;
-    RAISE NOTICE 'Reprogramada la funcion % para el %',
-        funcionMasVista.id_funcion, p_nueva_fecha;
+ 
+    -- Cada funcion debe tener al menos un empleado asignado.
+    -- Si la original no tenia personal, se cancela toda la operacion.
+    IF v_asignaciones = 0 THEN
+        RAISE EXCEPTION 'La funcion % no tiene personal asignado para copiar a la nueva funcion',
+            funcionMasVista.id_funcion
+        USING HINT = 'Asigne al menos un empleado a la funcion original en ASIGNACION';
+    END IF;
+ 
+    RAISE NOTICE 'Reprogramada la funcion % como funcion % para el % (% empleado(s) asignado(s))',
+        funcionMasVista.id_funcion, v_nueva_funcion, p_nueva_fecha, v_asignaciones;
 END;
 $$ LANGUAGE plpgsql;
 
-
--- Procedimiento que retira de cartelera la pelicula menos vista 
+-- Procedimiento 2 (mantenimiento / operacion)
+-- Retira de cartelera la pelicula menos vista 
 -- de la semana.
 CREATE OR REPLACE PROCEDURE sp_retirar_pelicula_menos_vista(
     p_inicio DATE,
