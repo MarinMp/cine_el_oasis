@@ -8,26 +8,6 @@
 -- Orden de ejecucion: 01 -> 03 -> 02 -> 04 -> 05
 -- =====================================================================
 
-
--- Ocupacion de cada funcion: boletas vendidas frente a la capacidad de la sala.
-SELECT p.titulo,
-       f.fecha,
-       f.hora_inicio,
-       s.nombre AS sala,
-       s.capacidad,
-       COALESCE(b.boletas, 0) AS boletas_vendidas,
-       ROUND(COALESCE(b.boletas, 0) * 100.0 / s.capacidad, 1) AS pct_ocupacion
-  FROM funcion f
-  JOIN pelicula p ON p.id_pelicula = f.id_pelicula
-  JOIN sala s ON s.id_sala = f.id_sala
-  LEFT JOIN (SELECT v.id_funcion,
-                    SUM(dv.cantidad) AS boletas
-               FROM venta v
-               JOIN detalle_venta dv ON dv.id_venta = v.id_venta
-              GROUP BY v.id_funcion) b ON b.id_funcion = f.id_funcion
- ORDER BY pct_ocupacion ASC, f.fecha ASC;
-
-
 -- Consultar espectadores que gastaron mas que el promedio, con su posicion en el ranking.
 SELECT RANK() OVER (ORDER BY G.TOTAL_GASTADO DESC) AS POSICION,
        E.PRIMER_NOMBRE || ' ' || E.PRIMER_APELLIDO AS ESPECTADOR,
@@ -49,7 +29,6 @@ WHERE G.TOTAL_GASTADO > (SELECT AVG(T.GASTO)
                                GROUP BY ID_ESPECTADOR) T)
 ORDER BY POSICION, ESPECTADOR;
 
-
 -- Consultar actores y directores que participan en mas de una pelicula en cartelera
 SELECT A.PRIMER_NOMBRE || ' ' || A.PRIMER_APELLIDO AS PERSONA,
        N.NOMBRE AS NACIONALIDAD,
@@ -69,3 +48,21 @@ WHERE EXISTS (SELECT 1
 GROUP BY A.ID_PERSONA, A.PRIMER_NOMBRE, A.PRIMER_APELLIDO, N.NOMBRE, R.NOMBRE
 HAVING COUNT(*) > 1
 ORDER BY PELICULAS DESC, PERSONA;
+
+-- Ocupacion de cada funcion: boletas vendidas frente a la capacidad de la sala.
+SELECT p.titulo,
+       f.fecha,
+       f.hora_inicio,
+       s.nombre AS sala,
+       s.capacidad,
+       COALESCE(b.boletas, 0) AS boletas_vendidas,
+       ROUND(COALESCE(b.boletas, 0) * 100.0 / s.capacidad, 1) AS pct_ocupacion
+  FROM funcion f
+  JOIN pelicula p ON p.id_pelicula = f.id_pelicula
+  JOIN sala s ON s.id_sala = f.id_sala
+  LEFT JOIN (SELECT v.id_funcion,
+                    SUM(dv.cantidad) AS boletas
+               FROM venta v
+               JOIN detalle_venta dv ON dv.id_venta = v.id_venta
+              GROUP BY v.id_funcion) b ON b.id_funcion = f.id_funcion
+ ORDER BY pct_ocupacion ASC, f.fecha ASC;
