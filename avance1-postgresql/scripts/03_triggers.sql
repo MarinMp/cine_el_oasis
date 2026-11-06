@@ -72,12 +72,17 @@ FOR EACH ROW
 EXECUTE FUNCTION fn_funcion_programacion();
 
 -- Trigger que guarda en LOG_AUDITORIA cada insercion, actualizacion
--- o eliminacion, con los datos de antes y de despues
+-- o eliminacion, con los datos de antes y de despues, y enlaza el
+-- registro afectado en la columna de su tabla
 CREATE OR REPLACE FUNCTION fn_auditoria()
 RETURNS TRIGGER AS $$
 DECLARE
     v_antes JSONB;
     v_despues JSONB;
+    v_id_contrato INTEGER;
+    v_id_tipo_boleta INTEGER;
+    v_id_venta INTEGER;
+    v_id_staff INTEGER;
 BEGIN
     IF TG_OP = 'INSERT' THEN
         v_antes := NULL;
@@ -90,10 +95,25 @@ BEGIN
         v_despues := NULL;
     END IF;
 
+    IF TG_OP <> 'DELETE' THEN
+        CASE TG_TABLE_NAME
+            WHEN 'contrato' THEN
+                v_id_contrato := (v_despues ->> 'id_contrato')::INTEGER;
+            WHEN 'tipo_boleta' THEN
+                v_id_tipo_boleta := (v_despues ->> 'id_tipo_boleta')::INTEGER;
+            WHEN 'venta' THEN
+                v_id_venta := (v_despues ->> 'id_venta')::INTEGER;
+            WHEN 'staff' THEN
+                v_id_staff := (v_despues ->> 'id_staff')::INTEGER;
+        END CASE;
+    END IF;
+ 
     INSERT INTO LOG_AUDITORIA (TABLA_AFECTADA, OPERACION, USUARIO_DE_SESION,
-                               DATOS_ANTES, DATOS_DESPUES)
-    VALUES (TG_TABLE_NAME, TG_OP, CURRENT_USER, v_antes, v_despues);
-
+                               DATOS_ANTES, DATOS_DESPUES,
+                               ID_CONTRATO, ID_TIPO_BOLETA, ID_VENTA, ID_STAFF)
+    VALUES (TG_TABLE_NAME, TG_OP, CURRENT_USER, v_antes, v_despues,
+            v_id_contrato, v_id_tipo_boleta, v_id_venta, v_id_staff);
+ 
     RETURN NULL;
 END;
 $$ LANGUAGE plpgsql;
