@@ -845,7 +845,7 @@ db.requisitos_proyeccion.insertMany([
     requisitos: {
       proyector: "Laser 4K",
       sonido: "Dolby Atmos",
-      efectos: ["movimiento de sillas", "agua", "viento"],
+      efectos: ["movimiento de butacas", "agua", "viento"],
       advertencia_salud: true,
       estatura_minima_cm: 100,
       pausa_tecnica_min: 0,
@@ -1619,7 +1619,7 @@ db.reportes_incidentes.insertMany([
     id_sala: 10,
     id_staff_reporta: 6,
     estado: "RESUELTO",
-    descripcion: "El sistema de movimiento de sillas se detuvo a los 20 minutos de la funcion.",
+    descripcion: "El sistema de movimiento de butacas se detuvo a los 20 minutos de la funcion.",
     detalle: { equipo: "sillas 4D", minutos_retraso: 15, funcion_reprogramada: false },
     seguimiento: [
       { fecha: ISODate("2026-10-14T19:25:00-05:00"), accion: "Reinicio del sistema", id_staff: 6 },
