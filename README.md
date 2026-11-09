@@ -37,8 +37,23 @@ cine_el_oasis/
 │       └── 05_consulta3_resultado.png
 ├── avance2-mongodb/
 │   ├── diagrama-arquitectura-poliglota/
+│   │   └── arquitectura_poliglota.png
 │   ├── scripts/
+│   │   ├── 01_creacion_colecciones.js
+│   │   ├── 02_datos_prueba.js
+│   │   └── 03_consultas.js
 │   └── evidencias/
+│       ├── 01_creacion_colecciones.png
+│       ├── 02_datos_de_prueba.png
+│       ├── 03_consulta1_resultado.png
+│       ├── 03_consulta2_resultado.png
+│       ├── 03_consulta3_resultado.png
+│       ├── 03_consulta4_resultado.png
+│       ├── 03_consulta5_resultado.png
+│       ├── evidencia_fichas_tecnicas_peliculas.png
+│       ├── evidencia_requisitos_proyeccion.png
+│       ├── evidencia_resenas_peliculas.png
+│       └── evidencia_reportes_incidentes.png
 └── README.md
 ```
 
@@ -147,10 +162,56 @@ COMMIT;
 
 ## Avance 2 - Arquitectura políglota (MongoDB)
 
-En curso.
+PostgreSQL sigue siendo el núcleo transaccional: ventas, funciones, salas, contratos y personal, donde los datos deben ser siempre exactos. MongoDB guarda la información que no encaja bien en tablas porque su estructura cambia de un registro a otro, como fichas técnicas, requisitos de proyección, reseñas e incidentes. Los dos motores se conectan mediante identificadores compartidos.
 
+### Entregables
+ 
 | Entregable | Ubicación |
 |---|---|
 | Diagrama de arquitectura políglota | `avance2-mongodb/diagrama-arquitectura-poliglota/` |
-| Scripts de MongoDB | `avance2-mongodb/scripts/` |
+| Creación de colecciones | `avance2-mongodb/scripts/01_creacion_colecciones.js` |
+| Datos de prueba | `avance2-mongodb/scripts/02_datos_prueba.js` |
+| Consultas MongoDB | `avance2-mongodb/scripts/03_consultas.js` |
 | Capturas de ejecución | `avance2-mongodb/evidencias/` |
+| Informe | `avance2-informe.pdf` (entregado en la plataforma) |
+
+### Colecciones
+ 
+| Colección | Documentos | Identificadores compartidos con PostgreSQL | Validación |
+|---|---|---|---|
+| `fichas_tecnicas_peliculas` | 30 (una por película) | `id_pelicula`, `id_persona` | Índice único |
+| `requisitos_proyeccion` | 40 (uno por función) | `id_funcion`, `id_sala`, `id_pelicula` | Índice único |
+| `resenas_peliculas` | 36 | `id_pelicula`, `id_espectador`, `id_venta`, `id_staff` | `$jsonSchema` |
+| `reportes_incidentes` | 32 | `id_funcion`, `id_sala`, `id_staff`, `id_espectador` | `$jsonSchema` |
+
+### Tecnología
+ 
+- MongoDB 8.0 en [MongoDB Atlas](https://www.mongodb.com/atlas) (conjunto de réplicas de 3 nodos), administrado con MongoDB Compass.
+
+### Orden de ejecución de los scripts
+ 
+Los scripts se ejecutan en el shell de Compass (*Open MongoDB shell*) y trabajan sobre la base de datos `el_oasis`:
+ 
+1. `01_creacion_colecciones.js`
+2. `02_datos_prueba.js`
+3. `03_consultas.js`, una consulta a la vez
+El script `01_creacion_colecciones.js` elimina las colecciones si ya existen, y `02_datos_prueba.js` borra los documentos antes de insertarlos, por lo que la secuencia se puede repetir para dejar la base en su estado inicial.
+
+### Validación con `$jsonSchema`
+ 
+Estos dos documentos son rechazados con `Document failed validation`:
+ 
+```javascript
+// Calificación fuera de rango y texto demasiado corto
+db.resenas_peliculas.insertOne({
+    id_pelicula: 5, id_espectador: 13,
+    calificacion: 7, texto: "Mala", fecha: new Date()
+});
+ 
+// Queja de servicio sin el espectador en el detalle
+db.reportes_incidentes.insertOne({
+    tipo: "QUEJA_SERVICIO", fecha: new Date(), estado: "ABIERTO",
+    descripcion: "El cliente reclama por la demora en la taquilla",
+    id_staff_reporta: 2, detalle: { motivo: "demora" }
+});
+```
