@@ -94,7 +94,7 @@ INSERT INTO PELICULA (TITULO, DURACION_MIN, FECHA_ESTRENO, ID_GENERO, ID_CLASIFI
     ('Interestelar', 169, '2014-11-07', 1, 3, 1),   -- 7
     ('IntensaMente 2', 96, '2024-06-14', 3, 1, 1),   -- 8
     ('Avatar: El Camino del Agua', 192, '2022-12-16', 2, 3, 1),   -- 9
-    ('Barbie', 114, '2023-07-21', 5, 3, 1)   -- 10
+    ('Barbie', 114, '2023-07-21', 5, 3, 1),   -- 10
     -- Catalogo: peliculas sin funciones programadas (fuera de cartelera)
     ('Avengers: Endgame', 181, '2019-04-26', 2, 3, 1),   -- 11
     ('Spider-Man: Sin Camino a Casa', 148, '2021-12-17', 2, 3, 1),   -- 12
