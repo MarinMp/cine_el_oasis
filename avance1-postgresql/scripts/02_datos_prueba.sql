@@ -94,7 +94,28 @@ INSERT INTO PELICULA (TITULO, DURACION_MIN, FECHA_ESTRENO, ID_GENERO, ID_CLASIFI
     ('Interestelar', 169, '2014-11-07', 1, 3, 1),   -- 7
     ('IntensaMente 2', 96, '2024-06-14', 3, 1, 1),   -- 8
     ('Avatar: El Camino del Agua', 192, '2022-12-16', 2, 3, 1),   -- 9
-    ('Barbie', 114, '2023-07-21', 5, 3, 1);   -- 10
+    ('Barbie', 114, '2023-07-21', 5, 3, 1)   -- 10
+    -- Catalogo: peliculas sin funciones programadas (fuera de cartelera)
+    ('Avengers: Endgame', 181, '2019-04-26', 2, 3, 1),   -- 11
+    ('Spider-Man: Sin Camino a Casa', 148, '2021-12-17', 2, 3, 1),   -- 12
+    ('Top Gun: Maverick', 130, '2022-05-27', 2, 3, 1),   -- 13
+    ('Jurassic World: Dominio', 147, '2022-06-10', 2, 3, 1),   -- 14
+    ('Toy Story 4', 100, '2019-06-21', 3, 1, 1),   -- 15
+    ('Frozen II', 103, '2019-11-22', 3, 1, 1),   -- 16
+    ('El Rey Leon', 118, '2019-07-19', 3, 1, 1),   -- 17
+    ('Mision Imposible: Sentencia Mortal', 163, '2023-07-12', 2, 3, 1),   -- 18
+    ('Guardianes de la Galaxia Vol. 3', 150, '2023-05-05', 1, 3, 1),   -- 19
+    ('Wonka', 116, '2023-12-15', 5, 1, 1),   -- 20
+    ('Super Mario Bros: La Pelicula', 92, '2023-04-05', 3, 1, 1),   -- 21
+    ('Joker', 122, '2019-10-04', 4, 4, 1),   -- 22
+    ('Tenet', 150, '2020-08-26', 1, 3, 1),   -- 23
+    ('La La Land', 128, '2016-12-09', 4, 2, 1),   -- 24
+    ('Los Increibles 2', 118, '2018-06-15', 3, 1, 1),   -- 25
+    ('Encanto', 102, '2021-11-24', 3, 1, 1),   -- 26
+    ('Gravedad', 91, '2013-10-04', 1, 3, 1),   -- 27
+    ('Moana 2', 100, '2024-11-27', 3, 1, 1),   -- 28
+    ('Wicked', 160, '2024-11-22', 4, 2, 1),   -- 29
+    ('Mision Imposible: Sentencia Final', 169, '2025-05-23', 2, 3, 1);   -- 30
 
 -- Actores y directores 
 INSERT INTO ACTOR_DIRECTOR (PRIMER_NOMBRE, SEGUNDO_NOMBRE, PRIMER_APELLIDO, SEGUNDO_APELLIDO, ID_NACIONALIDAD) VALUES
