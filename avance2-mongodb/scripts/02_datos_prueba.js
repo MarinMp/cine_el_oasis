@@ -1571,7 +1571,7 @@ db.resenas_peliculas.insertMany([
     id_espectador: 17,
     calificacion: 4,
     titulo: "Inquietante",
-    texto: "Joaquin Phoenix esta brillante; No es una pelicula para todos.",
+    texto: "Joaquin Phoenix esta brillante; no es una pelicula para todos.",
     fecha: ISODate("2026-10-17T21:20:00-05:00"),
     etiquetas: ["drama"]
   },
