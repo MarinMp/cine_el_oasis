@@ -1235,7 +1235,7 @@ db.resenas_peliculas.insertMany([
     id_venta: 1,
     calificacion: 5,
     titulo: "Llore con el final",
-    texto: "La cancion Recuerdame me dejo sin palabras.",
+    texto: "La cancion Recuerdame me dejo sin palabras. Gran musica.",
     fecha: ISODate("2026-10-12T18:52:00-05:00"),
     etiquetas: ["musica", "familiar"]
   },
@@ -1270,7 +1270,7 @@ db.resenas_peliculas.insertMany([
     id_venta: 4,
     calificacion: 5,
     titulo: "Mejor que la primera",
-    texto: "Austin Butler se roba la pelicula. La vimos en 4D y valio la pena.",
+    texto: "Austin Butler se roba la pelicula. La vimos en 4D y valio cada peso.",
     fecha: ISODate("2026-10-13T02:44:00-05:00"),
     etiquetas: ["4D", "accion"]
   },
@@ -1422,7 +1422,7 @@ db.resenas_peliculas.insertMany([
     id_venta: 20,
     calificacion: 2,
     titulo: "Demasiado larga",
-    texto: "Casi tres horas sin intermedio es mucho y las sillas 4D se detuvieron un rato.",
+    texto: "Casi tres horas sin intermedio es mucho y las butacas 4D se detuvieron un rato.",
     fecha: ISODate("2026-10-15T12:36:00-05:00"),
     etiquetas: ["4D"],
     respuesta_empresa: {
@@ -1492,7 +1492,7 @@ db.resenas_peliculas.insertMany([
     id_venta: 27,
     calificacion: 3,
     titulo: "Para los ninos",
-    texto: "A los pequenos les encanto, a mi me parecio predecible.",
+    texto: "A los pequenos les encanto; a mi me parecio predecible.",
     fecha: ISODate("2026-10-17T20:45:00-05:00")
   },
   {
@@ -1571,7 +1571,7 @@ db.resenas_peliculas.insertMany([
     id_espectador: 17,
     calificacion: 4,
     titulo: "Inquietante",
-    texto: "Joaquin Phoenix esta brillante. No es una pelicula para todos.",
+    texto: "Joaquin Phoenix esta brillante; No es una pelicula para todos.",
     fecha: ISODate("2026-10-17T21:20:00-05:00"),
     etiquetas: ["drama"]
   },
@@ -1620,7 +1620,7 @@ db.reportes_incidentes.insertMany([
     id_staff_reporta: 6,
     estado: "RESUELTO",
     descripcion: "El sistema de movimiento de butacas se detuvo a los 20 minutos de la funcion.",
-    detalle: { equipo: "sillas 4D", minutos_retraso: 15, funcion_reprogramada: false },
+    detalle: { equipo: "butacas 4D", minutos_retraso: 15, funcion_reprogramada: false },
     seguimiento: [
       { fecha: ISODate("2026-10-14T19:25:00-05:00"), accion: "Reinicio del sistema", id_staff: 6 },
       { fecha: ISODate("2026-10-15T08:20:00-05:00"), accion: "Revision preventiva", id_staff: 1 }
@@ -1903,8 +1903,8 @@ db.reportes_incidentes.insertMany([
     id_sala: 10,
     id_staff_reporta: 10,
     estado: "RESUELTO",
-    descripcion: "El espectador reclama porque las sillas 4D dejaron de moverse.",
-    detalle: { id_espectador: 13, motivo: "falla de sillas 4D", compensacion: "boleta de cortesia" },
+    descripcion: "El espectador reclama porque las butacas 4D dejaron de moverse.",
+    detalle: { id_espectador: 13, motivo: "falla de butacas 4D", compensacion: "boleta de cortesia" },
     seguimiento: [
       {
         fecha: ISODate("2026-10-14T19:55:00-05:00"),
