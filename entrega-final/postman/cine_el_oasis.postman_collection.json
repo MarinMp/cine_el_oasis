@@ -1,0 +1,229 @@
+{
+  "info": {
+    "name": "Cine El Oasis API",
+    "description": "Pruebas de la API del Cine El Oasis (FastAPI + PostgreSQL en Neon + MongoDB Atlas). Antes de ejecutarla, encender la API con: uvicorn main:app --reload",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000"
+    }
+  ],
+  "item": [
+    {
+      "name": "Salud de las bases",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "const r = pm.response.json();",
+              "pm.test('PostgreSQL conectado con 30 peliculas', () => {",
+              "    pm.expect(r.postgresql.estado).to.eql('ok');",
+              "    pm.expect(r.postgresql.peliculas).to.eql(30);",
+              "});",
+              "pm.test('MongoDB conectado con 30 fichas tecnicas', () => {",
+              "    pm.expect(r.mongodb.estado).to.eql('ok');",
+              "    pm.expect(r.mongodb.fichas_tecnicas).to.eql(30);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/salud",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "salud"
+          ]
+        },
+        "description": "Comprueba la conexion con PostgreSQL y MongoDB."
+      },
+      "response": []
+    },
+    {
+      "name": "Catalogo completo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "const r = pm.response.json();",
+              "pm.test('Devuelve las 30 peliculas del catalogo', () => pm.expect(r).to.have.lengthOf(30));",
+              "pm.test('Cada pelicula trae genero y clasificacion', () => {",
+              "    r.forEach(p => pm.expect(p).to.include.keys('id_pelicula', 'titulo', 'genero', 'clasificacion', 'en_cartelera'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/peliculas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "peliculas"
+          ]
+        },
+        "description": "Las 30 peliculas, primero las que estan en cartelera."
+      },
+      "response": []
+    },
+    {
+      "name": "Cartelera",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "const r = pm.response.json();",
+              "pm.test('Devuelve las 10 peliculas con funciones', () => pm.expect(r).to.have.lengthOf(10));",
+              "pm.test('Todas estan en cartelera', () => r.forEach(p => pm.expect(p.en_cartelera).to.be.true));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/peliculas?en_cartelera=true",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "peliculas"
+          ],
+          "query": [
+            {
+              "key": "en_cartelera",
+              "value": "true"
+            }
+          ]
+        },
+        "description": "Solo las peliculas con funciones programadas."
+      },
+      "response": []
+    },
+    {
+      "name": "Detalle de pelicula (PostgreSQL + MongoDB)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "const r = pm.response.json();",
+              "pm.test('Es Dune', () => pm.expect(r.titulo).to.eql('Dune'));",
+              "pm.test('Trae sus funciones desde PostgreSQL', () => pm.expect(r.funciones).to.be.an('array').that.is.not.empty);",
+              "pm.test('Trae su ficha tecnica desde MongoDB', () => {",
+              "    pm.expect(r.ficha_tecnica).to.be.an('object');",
+              "    pm.expect(r.ficha_tecnica.id_pelicula).to.eql(r.id_pelicula);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/peliculas/1",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "peliculas",
+            "1"
+          ]
+        },
+        "description": "Une los datos de PostgreSQL con la ficha tecnica de MongoDB por id_pelicula."
+      },
+      "response": []
+    },
+    {
+      "name": "Pelicula inexistente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 404', () => pm.response.to.have.status(404));",
+              "pm.test('Explica el error', () => pm.expect(pm.response.json().detail).to.eql('Pelicula no encontrada'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/peliculas/999",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "peliculas",
+            "999"
+          ]
+        },
+        "description": "Caso de error: el id no existe."
+      },
+      "response": []
+    },
+    {
+      "name": "Id no valido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 422', () => pm.response.to.have.status(422));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/peliculas/abc",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "peliculas",
+            "abc"
+          ]
+        },
+        "description": "Caso de error: el id no es un numero."
+      },
+      "response": []
+    }
+  ]
+}

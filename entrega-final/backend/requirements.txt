@@ -1,0 +1,6 @@
+fastapi==0.162.7
+uvicorn==0.54.0
+psycopg[binary]==3.3.9
+pymongo==4.20.0
+python-dotenv==1.2.4
+certifi==2026.10.23
