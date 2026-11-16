@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import espectadores, funciones, peliculas, salud, ventas
+from routers import espectadores, funciones, peliculas, reportes, salud, ventas
 
 app = FastAPI(
     title="Cine El Oasis API",
@@ -22,3 +22,4 @@ app.include_router(peliculas.router, prefix="/api")
 app.include_router(funciones.router, prefix="/api")
 app.include_router(espectadores.router, prefix="/api")
 app.include_router(ventas.router, prefix="/api")
+app.include_router(reportes.router, prefix="/api")

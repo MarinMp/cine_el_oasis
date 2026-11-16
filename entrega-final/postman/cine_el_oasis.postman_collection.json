@@ -486,6 +486,208 @@
         }
       },
       "response": []
+    },
+    {
+      "name": "Reporte de ventas por pelicula (procedimiento con cursor)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "const r = pm.response.json();",
+              "pm.test('Trae una fila por pelicula con funciones en el periodo', () => pm.expect(r).to.be.an('array').that.is.not.empty);",
+              "pm.test('Boletas = taquilla + en linea', () => r.forEach(f => pm.expect(f.boletas).to.eql(f.boletas_taquilla + f.boletas_en_linea)));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/reportes/ventas-por-pelicula?inicio=2026-10-12&fin=2026-10-18",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "reportes",
+            "ventas-por-pelicula"
+          ],
+          "query": [
+            {
+              "key": "inicio",
+              "value": "2026-10-12"
+            },
+            {
+              "key": "fin",
+              "value": "2026-10-18"
+            }
+          ]
+        },
+        "description": "CALL sp_reporte_ventas_pelicula y FETCH ALL del cursor, en la misma transaccion."
+      },
+      "response": []
+    },
+    {
+      "name": "Rechazo del procedimiento: periodo invalido",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 422', () => pm.response.to.have.status(422));",
+              "const r = pm.response.json();",
+              "pm.test('Lo rechazo el procedimiento', () => pm.expect(r.detail.origen).to.eql('procedimiento'));",
+              "pm.test('Explica el periodo invalido', () => pm.expect(r.detail.mensaje).to.include('Periodo invalido'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/reportes/ventas-por-pelicula?inicio=2026-10-20&fin=2026-10-12",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "reportes",
+            "ventas-por-pelicula"
+          ],
+          "query": [
+            {
+              "key": "inicio",
+              "value": "2026-10-20"
+            },
+            {
+              "key": "fin",
+              "value": "2026-10-12"
+            }
+          ]
+        },
+        "description": "El inicio es posterior al fin: el procedimiento lanza RAISE EXCEPTION."
+      },
+      "response": []
+    },
+    {
+      "name": "Ocupacion por funcion",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "pm.test('El porcentaje esta entre 0 y 100', () => pm.response.json().forEach(f => pm.expect(f.pct_ocupacion).to.be.within(0, 100)));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/reportes/ocupacion",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "reportes",
+            "ocupacion"
+          ]
+        },
+        "description": "Consulta 3 del avance 1."
+      },
+      "response": []
+    },
+    {
+      "name": "Incidentes por tipo (MongoDB)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "const falla = pm.response.json().find(f => f.tipo === 'FALLA_TECNICA');",
+              "pm.test('Fallas tecnicas: 16.1 min de retraso promedio en 7 salas', () => {",
+              "    pm.expect(falla.retraso_promedio_min).to.eql(16.1);",
+              "    pm.expect(falla.salas_afectadas).to.eql(7);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/reportes/incidentes",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "reportes",
+            "incidentes"
+          ]
+        },
+        "description": "Consulta 2 del avance 2, la misma que se ejecuto en Atlas."
+      },
+      "response": []
+    },
+    {
+      "name": "Rechazo del procedimiento: reprogramar un martes",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 422', () => pm.response.to.have.status(422));",
+              "pm.test('Explica que debe ser fin de semana', () => pm.expect(pm.response.json().detail.mensaje).to.include('no es sabado ni domingo'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/admin/reprogramar-funcion-mas-vendida",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "admin",
+            "reprogramar-funcion-mas-vendida"
+          ]
+        },
+        "description": "sp_reprogramar_funcion_mas_vendida solo acepta el sabado o domingo siguiente. No modifica datos.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"inicio\": \"2026-10-12\",\n  \"fin\": \"2026-10-16\",\n  \"nueva_fecha\": \"2026-10-20\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
     }
   ]
 }

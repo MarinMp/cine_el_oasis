@@ -37,6 +37,13 @@ export const api = {
       if (error.status === 404) return null
       throw error
     }),
+  reporte: (ruta) => pedir(`/reportes/${ruta}`),
+  administrar: (ruta, datos) =>
+    pedir(`/admin/${ruta}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos),
+    }),
   comprar: (compra) =>
     pedir('/ventas', {
       method: 'POST',

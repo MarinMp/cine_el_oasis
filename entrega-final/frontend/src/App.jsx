@@ -6,6 +6,7 @@ import Cartelera from './pages/Cartelera.jsx'
 import Compra from './pages/Compra.jsx'
 import DetallePelicula from './pages/DetallePelicula.jsx'
 import NoEncontrada from './pages/NoEncontrada.jsx'
+import Reportes from './pages/Reportes.jsx'
 
 export default function App() {
   const { pathname } = useLocation()
@@ -23,6 +24,7 @@ export default function App() {
           <Route path="/" element={<Cartelera />} />
           <Route path="/pelicula/:id" element={<DetallePelicula />} />
           <Route path="/comprar/:idFuncion" element={<Compra />} />
+          <Route path="/reportes" element={<Reportes />} />
           <Route path="*" element={<NoEncontrada />} />
         </Routes>
       </main>

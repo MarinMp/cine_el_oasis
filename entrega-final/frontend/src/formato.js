@@ -74,3 +74,23 @@ export function hora(horaIso) {
 
 const formatoPesos = new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 })
 export const pesos = (valor) => formatoPesos.format(Number(valor))
+
+const formatoNumero = new Intl.NumberFormat('es-CO')
+export const numero = (valor) => formatoNumero.format(Number(valor))
+
+// Textos que en la base estan sin tildes
+const TEXTOS = {
+  FALLA_TECNICA: 'Falla técnica',
+  QUEJA_SERVICIO: 'Queja de servicio',
+  BRITANICA: 'Británica',
+}
+
+// 'SEGURIDAD' -> 'Seguridad', 'FALLA_TECNICA' -> 'Falla técnica'
+export const etiqueta = (valor) => TEXTOS[valor] ?? capitalizar(String(valor).replaceAll('_', ' '))
+
+const formatoFechaHora = new Intl.DateTimeFormat('es-CO', {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+  timeZone: 'America/Bogota',
+})
+export const fechaHora = (iso) => formatoFechaHora.format(new Date(iso))

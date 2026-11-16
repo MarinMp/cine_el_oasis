@@ -1,7 +1,10 @@
 import { NavLink } from 'react-router-dom'
 import Logo from './Logo.jsx'
 
-const enlaces = [{ ruta: '/', texto: 'Cartelera' }]
+const enlaces = [
+  { ruta: '/', texto: 'Cartelera' },
+  { ruta: '/reportes', texto: 'Reportes' },
+]
 
 export default function Encabezado() {
   return (
