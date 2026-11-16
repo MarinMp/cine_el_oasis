@@ -1,0 +1,64 @@
+@import "tailwindcss";
+
+@plugin "daisyui" {
+  themes: false;
+}
+
+/* Tema propio del cine, con los colores del logo "Amanecer en las dunas" */
+@plugin "daisyui/theme" {
+  name: "oasis";
+  default: true;
+  prefersdark: false;
+  color-scheme: light;
+
+  --color-base-100: #FBF4E6;
+  --color-base-200: #F1DDB8;
+  --color-base-300: #E4C998;
+  --color-base-content: #0E2A47;
+  --color-primary: #C8873E;
+  --color-primary-content: #0E2A47;
+  --color-secondary: #0E2A47;
+  --color-secondary-content: #FBF4E6;
+  --color-accent: #4FB3D9;
+  --color-accent-content: #0E2A47;
+  --color-neutral: #0E2A47;
+  --color-neutral-content: #FBF4E6;
+  --color-info: #4FB3D9;
+  --color-info-content: #0E2A47;
+  --color-success: #3F7D58;
+  --color-success-content: #FBF4E6;
+  --color-warning: #E9B44C;
+  --color-warning-content: #0E2A47;
+  --color-error: #B5452E;
+  --color-error-content: #FBF4E6;
+
+  --radius-selector: 2rem;
+  --radius-field: 2rem;
+  --radius-box: 1rem;
+  --size-selector: 0.25rem;
+  --size-field: 0.25rem;
+  --border: 1px;
+  --depth: 0;
+  --noise: 1;
+}
+
+@theme {
+  --font-display: "DM Serif Display", ui-serif, Georgia, serif;
+  --font-sans: "Josefin Sans", ui-sans-serif, system-ui, sans-serif;
+  --color-arena: #FBF4E6;
+  --color-arena-media: #F1DDB8;
+  --color-noche: #0E2A47;
+  --color-duna: #C8873E;
+  --color-duna-oscura: #A86A2C;
+  --color-duna-profunda: #8A5522;
+  --color-agua: #4FB3D9;
+  --color-sol: #E9B44C;
+}
+
+html {
+  font-size: 17px;
+}
+
+body {
+  @apply bg-base-100 text-base-content font-sans antialiased;
+}
