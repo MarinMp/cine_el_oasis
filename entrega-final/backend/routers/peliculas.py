@@ -28,10 +28,16 @@ SQL_FUNCIONES = """
            f.version_proyeccion,
            s.nombre AS sala,
            ts.nombre AS tipo_sala,
-           s.capacidad
+           s.capacidad,
+           COALESCE(v.vendidas, 0) AS vendidas,
+           s.capacidad - COALESCE(v.vendidas, 0) AS disponibles
       FROM funcion f
       JOIN sala s       ON s.id_sala = f.id_sala
       JOIN tipo_sala ts ON ts.id_tipo_sala = s.id_tipo_sala
+      LEFT JOIN (SELECT ve.id_funcion, SUM(d.cantidad) AS vendidas
+                   FROM venta ve
+                   JOIN detalle_venta d ON d.id_venta = ve.id_venta
+                  GROUP BY ve.id_funcion) v ON v.id_funcion = f.id_funcion
      WHERE f.id_pelicula = %s
      ORDER BY f.fecha, f.hora_inicio
 """

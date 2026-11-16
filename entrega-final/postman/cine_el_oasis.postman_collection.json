@@ -8,6 +8,10 @@
     {
       "key": "base_url",
       "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "id_venta",
+      "value": ""
     }
   ],
   "item": [
@@ -222,6 +226,264 @@
           ]
         },
         "description": "Caso de error: el id no es un numero."
+      },
+      "response": []
+    },
+    {
+      "name": "Funcion con boletas y requisitos (PostgreSQL + MongoDB)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "const r = pm.response.json();",
+              "pm.test('Trae los 3 tipos de boleta de su sala', () => pm.expect(r.tipos_boleta).to.have.lengthOf(3));",
+              "pm.test('Calcula las sillas disponibles', () => pm.expect(r.disponibles).to.eql(r.capacidad - r.vendidas));",
+              "pm.test('Trae los requisitos de proyeccion desde MongoDB', () => pm.expect(r.proyeccion.formato).to.eql(r.tipo_sala));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/funciones/3",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "funciones",
+            "3"
+          ]
+        },
+        "description": "Funcion 3 (Dune, sala 3D). Los requisitos vienen de la coleccion requisitos_proyeccion."
+      },
+      "response": []
+    },
+    {
+      "name": "Compra en linea",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+              "const r = pm.response.json();",
+              "pm.collectionVariables.set('id_venta', r.id_venta);",
+              "pm.test('El trigger asigno el precio de cada boleta', () => r.detalle.forEach(d => pm.expect(d.precio_unitario).to.eql(d.precio_base)));",
+              "pm.test('El trigger calculo el total: 2 x 22.000 + 16.000', () => pm.expect(r.total).to.eql(60000));",
+              "pm.test('La auditoria registro 1 insercion y 2 actualizaciones', () => {",
+              "    pm.expect(r.auditoria.INSERT).to.eql(1);",
+              "    pm.expect(r.auditoria.UPDATE).to.eql(2);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/ventas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "ventas"
+          ]
+        },
+        "description": "Registra una compra real en PostgreSQL. Si el documento no existe, registra al espectador.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_funcion\": 3,\n  \"medio_pago\": \"TARJETA DEBITO\",\n  \"comprador\": {\n    \"documento\": \"1001001001\",\n    \"id_tipo_documento\": 1,\n    \"primer_nombre\": \"Prueba\",\n    \"primer_apellido\": \"Postman\",\n    \"correo\": \"prueba.postman@eloasis.co\"\n  },\n  \"boletas\": [\n    {\n      \"id_tipo_boleta\": 4,\n      \"cantidad\": 2\n    },\n    {\n      \"id_tipo_boleta\": 5,\n      \"cantidad\": 1\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Consultar la venta",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "pm.test('Es la venta que se acaba de registrar', () => pm.expect(pm.response.json().id_venta).to.eql(Number(pm.collectionVariables.get('id_venta'))));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/ventas/{{id_venta}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "ventas",
+            "{{id_venta}}"
+          ]
+        },
+        "description": "Consulta el comprobante de la venta anterior."
+      },
+      "response": []
+    },
+    {
+      "name": "Rechazo del trigger: mas de 10 boletas",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 409', () => pm.response.to.have.status(409));",
+              "const r = pm.response.json();",
+              "pm.test('Lo rechazo un trigger', () => pm.expect(r.detail.origen).to.eql('trigger'));",
+              "pm.test('Explica el maximo de 10 boletas', () => pm.expect(r.detail.mensaje).to.include('maximo de 10 boletas'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/ventas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "ventas"
+          ]
+        },
+        "description": "6 + 5 boletas en la misma compra: trg_detalle_venta_boleta la rechaza y no se guarda nada.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_funcion\": 3,\n  \"medio_pago\": \"TARJETA DEBITO\",\n  \"comprador\": {\n    \"documento\": \"1001001001\"\n  },\n  \"boletas\": [\n    {\n      \"id_tipo_boleta\": 4,\n      \"cantidad\": 6\n    },\n    {\n      \"id_tipo_boleta\": 5,\n      \"cantidad\": 5\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Rechazo del trigger: funcion que ya empezo",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 409', () => pm.response.to.have.status(409));",
+              "pm.test('Explica que la funcion ya empezo', () => pm.expect(pm.response.json().detail.mensaje).to.include('No se pueden vender boletas'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/ventas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "ventas"
+          ]
+        },
+        "description": "Compra con fecha 25 de octubre para una funcion del 12: trg_venta_validar la rechaza.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_funcion\": 3,\n  \"medio_pago\": \"TRANSFERENCIA\",\n  \"comprador\": {\n    \"documento\": \"1001001001\"\n  },\n  \"boletas\": [\n    {\n      \"id_tipo_boleta\": 4,\n      \"cantidad\": 1\n    }\n  ],\n  \"fecha_hora\": \"2026-10-25T10:00:00\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Descuento del miercoles",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 201', () => pm.response.to.have.status(201));",
+              "const r = pm.response.json();",
+              "pm.test('El trigger aplico el 50 %: 38.000 -> 19.000', () => pm.expect(r.detalle[0].precio_unitario).to.eql(19000));",
+              "pm.test('Marca el descuento', () => pm.expect(r.descuento_miercoles).to.be.true);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/ventas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "ventas"
+          ]
+        },
+        "description": "Compra el miercoles 14 de octubre a las 9:00 para la funcion de ese mismo dia (Interestelar, VIP).",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"id_funcion\": 18,\n  \"medio_pago\": \"TARJETA CREDITO\",\n  \"comprador\": {\n    \"documento\": \"1001001001\"\n  },\n  \"boletas\": [\n    {\n      \"id_tipo_boleta\": 7,\n      \"cantidad\": 1\n    }\n  ],\n  \"fecha_hora\": \"2026-10-14T09:00:00\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
       },
       "response": []
     }

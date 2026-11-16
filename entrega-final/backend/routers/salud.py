@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from db import conexion_pg, mongo
+from db import FECHA_SIMULADA, conexion_pg, mongo
 
 router = APIRouter(tags=["Salud"])
 
@@ -26,3 +26,9 @@ def salud():
 
     todo_ok = all(parte["estado"] == "ok" for parte in resultado.values())
     return JSONResponse(resultado, status_code=200 if todo_ok else 503)
+
+
+@router.get("/reloj")
+def reloj():
+    """Fecha y hora con la que la API registra las compras."""
+    return {"fecha_hora": FECHA_SIMULADA, "simulada": True}
