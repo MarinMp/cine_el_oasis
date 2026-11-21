@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../api.js'
 import Afiche from '../components/Afiche.jsx'
+import { SoloTecnico } from '../modoTecnico.jsx'
 import { AvisoError, Fuente } from '../components/Avisos.jsx'
 import Dunas from '../components/Dunas.jsx'
 import useDatos from '../useDatos.js'
@@ -129,16 +130,18 @@ function Resenas({ idPelicula }) {
 
   return (
     <section className="mt-12" aria-labelledby="titulo-resenas">
-      <div className="mb-2 flex flex-wrap items-center gap-3">
+      <div className="mb-5 flex flex-wrap items-center gap-3">
         <h2 id="titulo-resenas" className="font-display text-3xl">
           Reseñas
         </h2>
         <Fuente base="MongoDB" />
         <Fuente base="PostgreSQL" />
       </div>
-      <p className="mb-6 text-sm text-base-content/80">
-        Las reseñas vienen de MongoDB; el nombre del espectador y la compra que las respalda, de PostgreSQL.
-      </p>
+      <SoloTecnico>
+        <p className="-mt-2 mb-6 text-sm text-base-content/80">
+          Las reseñas vienen de MongoDB; el nombre del espectador y la compra que las respalda, de PostgreSQL.
+        </p>
+      </SoloTecnico>
       {cargando && <div className="skeleton h-28 w-full bg-base-200" />}
       {error && <AvisoError error={error} titulo="No se pudieron cargar las reseñas." />}
       {datos && datos.total === 0 && <p className="rounded-box bg-base-200 p-6">Esta película todavía no tiene reseñas.</p>}
@@ -224,7 +227,7 @@ export default function DetallePelicula() {
     <>
       <section className="relative overflow-hidden bg-noche text-arena">
         <div className="relative mx-auto flex max-w-6xl flex-col gap-8 px-4 pb-32 pt-8 sm:flex-row sm:items-end sm:px-6 sm:pb-36">
-          <Afiche pelicula={pelicula} className="w-40 shrink-0 shadow-xl ring-1 ring-arena/20 sm:w-56" />
+          <Afiche pelicula={pelicula} tamano="w500" className="w-40 shrink-0 shadow-xl ring-1 ring-arena/20 sm:w-56" />
           <div className="sm:pb-4">
             <Link to="/" className="text-sm font-semibold uppercase tracking-[0.2em] text-arena/70 hover:text-arena">
               ← Cartelera

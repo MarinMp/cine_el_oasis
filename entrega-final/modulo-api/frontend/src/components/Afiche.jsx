@@ -1,4 +1,11 @@
+import { useState } from 'react'
+import carteles from '../carteles.json'
 import { nombreGenero } from '../formato.js'
+
+// Rutas de los afiches de TMDB por id_pelicula (las genera scripts/carteles.mjs)
+const URL_IMAGENES = 'https://image.tmdb.org/t/p/'
+
+export const hayCarteles = Object.keys(carteles).length > 0
 
 // Cada genero tiene su propio cielo y sus propias dunas
 const ESTILOS = {
@@ -16,7 +23,26 @@ const DUNAS = [
   ['M0 236 C 30 214, 70 206, 110 220 C 150 234, 175 226, 200 230 L200 300 L0 300 Z', 'M0 266 C 50 250, 110 250, 200 270 L200 300 L0 300 Z'],
 ]
 
-export default function Afiche({ pelicula, className = '' }) {
+export default function Afiche({ pelicula, className = '', tamano = 'w342' }) {
+  const ruta = carteles[pelicula.id_pelicula]
+  const [fallo, setFallo] = useState(false)
+
+  // Si el afiche de TMDB no existe o no carga, se dibuja el afiche del género
+  if (ruta && !fallo) {
+    return (
+      <div className={`relative aspect-[2/3] overflow-hidden rounded-box bg-base-300 ${className}`}>
+        <img
+          src={`${URL_IMAGENES}${tamano}${ruta}`}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full object-cover"
+          onError={() => setFallo(true)}
+        />
+      </div>
+    )
+  }
+
   const estilo = ESTILOS[pelicula.genero] ?? ESTILOS.DRAMA
   const [dunaAtras, dunaFrente] = DUNAS[pelicula.id_pelicula % DUNAS.length]
   const solX = 40 + ((pelicula.id_pelicula * 37) % 120)

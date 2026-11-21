@@ -1,7 +1,9 @@
+import { useModoTecnico } from '../modoTecnico.jsx'
 import { AvisoError, Fuente } from './Avisos.jsx'
 
 // Tarjeta de un reporte: que muestra, con que tecnica y de que base sale
 export function Reporte({ titulo, descripcion, tecnica, base, controles, estado, children }) {
+  const { tecnico } = useModoTecnico()
   return (
     <section className="rounded-box border border-base-300 bg-base-100 p-5 sm:p-6">
       <div className="flex flex-wrap items-center gap-3">
@@ -9,7 +11,7 @@ export function Reporte({ titulo, descripcion, tecnica, base, controles, estado,
         <Fuente base={base} />
       </div>
       <p className="mt-2 max-w-3xl text-sm">{descripcion}</p>
-      {tecnica && <p className="mt-2 text-xs font-semibold text-duna-profunda">{tecnica}</p>}
+      {tecnico && tecnica && <p className="mt-2 text-xs font-semibold text-duna-profunda">{tecnica}</p>}
       {controles && <div className="mt-5">{controles}</div>}
       <div className="mt-5">
         {estado?.cargando && <div className="skeleton h-32 w-full bg-base-200" aria-label="Cargando reporte" />}

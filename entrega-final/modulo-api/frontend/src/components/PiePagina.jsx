@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api } from '../api.js'
+import { useModoTecnico } from '../modoTecnico.jsx'
+import { hayCarteles } from './Afiche.jsx'
 import { Emblema } from './Logo.jsx'
 
 function Servicio({ nombre, estado }) {
@@ -16,6 +18,7 @@ function Servicio({ nombre, estado }) {
 }
 
 export default function PiePagina() {
+  const { tecnico, cambiar } = useModoTecnico()
   const [estado, setEstado] = useState({ postgresql: 'cargando', mongodb: 'cargando' })
 
   useEffect(() => {
@@ -34,12 +37,32 @@ export default function PiePagina() {
             Cine El Oasis · Proyecto integrador de Bases de Datos 2
             <br />
             <span className="text-arena/60">Universidad El Bosque · 2026-2</span>
+            {hayCarteles && (
+              <>
+                <br />
+                <span className="text-xs text-arena/60">
+                  Afiches: The Movie Database (TMDB). Este producto usa la API de TMDB, pero no está avalado ni
+                  certificado por TMDB.
+                </span>
+              </>
+            )}
           </p>
         </div>
-        <ul className="flex flex-col gap-1" aria-label="Estado de las bases de datos">
-          <Servicio nombre="PostgreSQL" estado={estado.postgresql} />
-          <Servicio nombre="MongoDB" estado={estado.mongodb} />
-        </ul>
+        <div className="flex flex-col gap-3 sm:items-end">
+          <ul className="flex flex-col gap-1" aria-label="Estado de las bases de datos">
+            <Servicio nombre="PostgreSQL" estado={estado.postgresql} />
+            <Servicio nombre="MongoDB" estado={estado.mongodb} />
+          </ul>
+          <label className="flex cursor-pointer items-center gap-2 text-xs text-arena/70">
+            <input
+              type="checkbox"
+              className="toggle toggle-xs border-arena/40 bg-transparent text-arena checked:border-agua checked:bg-agua checked:text-noche"
+              checked={tecnico}
+              onChange={cambiar}
+            />
+            Modo técnico
+          </label>
+        </div>
       </div>
     </footer>
   )

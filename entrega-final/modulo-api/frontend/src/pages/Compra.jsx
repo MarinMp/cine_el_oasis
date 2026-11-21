@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../api.js'
 import { AvisoError, Fuente } from '../components/Avisos.jsx'
+import { SoloTecnico } from '../modoTecnico.jsx'
 import {
   capitalizar,
   fechaLarga,
@@ -129,36 +130,38 @@ function Comprobante({ venta }) {
         )}
       </div>
 
-      <div className="mt-8 rounded-box border border-base-300 p-6 text-sm">
-        <div className="mb-3 flex items-center gap-3">
-          <h2 className="font-semibold uppercase tracking-[0.2em]">Lo que hicieron las bases de datos</h2>
-          <Fuente base="PostgreSQL" />
-          <Fuente base="MongoDB" />
-        </div>
-        <ul className="list-disc space-y-2 pl-5">
-          <li>
-            Comprobó que la función no hubiera empezado (<code>trg_venta_validar</code>).
-          </li>
-          <li>
-            Validó el tipo de sala, el aforo y el máximo de 10 boletas, y calculó el precio de cada boleta
-            {venta.descuento_miercoles ? ' con el descuento del miércoles' : ''} (<code>trg_detalle_venta_boleta</code>).
-          </li>
-          <li>
-            Calculó el total de {pesos(venta.total)} (<code>trg_detalle_venta_total</code>).
-          </li>
-          <li>
-            Registró {venta.auditoria.INSERT ?? 0} inserción y {actualizaciones}{' '}
-            {actualizaciones === 1 ? 'actualización' : 'actualizaciones'} en <code>LOG_AUDITORIA</code> (
-            <code>trg_auditoria_venta</code>).
-          </li>
-          {venta.mongodb && (
+      <SoloTecnico>
+        <div className="mt-8 rounded-box border border-base-300 p-6 text-sm">
+          <div className="mb-3 flex items-center gap-3">
+            <h2 className="font-semibold uppercase tracking-[0.2em]">Lo que hicieron las bases de datos</h2>
+            <Fuente base="PostgreSQL" />
+            <Fuente base="MongoDB" />
+          </div>
+          <ul className="list-disc space-y-2 pl-5">
             <li>
-              Guardó el comprobante de la misma compra en MongoDB (colección <code>comprobantes_venta</code>, documento{' '}
-              <code>{venta.mongodb.id}</code>). Si MongoDB hubiera fallado, la venta se habría deshecho en PostgreSQL.
+              Comprobó que la función no hubiera empezado (<code>trg_venta_validar</code>).
             </li>
-          )}
-        </ul>
-      </div>
+            <li>
+              Validó el tipo de sala, el aforo y el máximo de 10 boletas, y calculó el precio de cada boleta
+              {venta.descuento_miercoles ? ' con el descuento del miércoles' : ''} (<code>trg_detalle_venta_boleta</code>).
+            </li>
+            <li>
+              Calculó el total de {pesos(venta.total)} (<code>trg_detalle_venta_total</code>).
+            </li>
+            <li>
+              Registró {venta.auditoria.INSERT ?? 0} inserción y {actualizaciones}{' '}
+              {actualizaciones === 1 ? 'actualización' : 'actualizaciones'} en <code>LOG_AUDITORIA</code> (
+              <code>trg_auditoria_venta</code>).
+            </li>
+            {venta.mongodb && (
+              <li>
+                Guardó el comprobante de la misma compra en MongoDB (colección <code>comprobantes_venta</code>, documento{' '}
+                <code>{venta.mongodb.id}</code>). Si MongoDB hubiera fallado, la venta se habría deshecho en PostgreSQL.
+              </li>
+            )}
+          </ul>
+        </div>
+      </SoloTecnico>
 
       <div className="mt-8 flex flex-wrap gap-3">
         <Link to="/" className="btn btn-secondary">
@@ -300,9 +303,11 @@ export default function Compra() {
                   {texto}
                 </li>
               ))}
-              <li>
-                <span className="badge border-arena/30 bg-transparent text-arena/80">Desde MongoDB</span>
-              </li>
+              <SoloTecnico>
+                <li>
+                  <span className="badge border-arena/30 bg-transparent text-arena/80">Desde MongoDB</span>
+                </li>
+              </SoloTecnico>
             </ul>
           )}
         </div>
