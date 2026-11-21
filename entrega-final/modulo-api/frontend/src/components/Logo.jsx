@@ -29,10 +29,10 @@ export function Emblema({ className = 'h-10 w-10' }) {
 export default function Logo() {
   return (
     <span className="flex items-center gap-3">
-      <Emblema />
-      <span className="flex flex-col leading-none">
-        <span className="font-display text-2xl">El Oasis</span>
-        <span className="mt-1 text-[0.6rem] font-semibold uppercase tracking-[0.4em] text-duna">
+      <Emblema className="h-9 w-9 sm:h-10 sm:w-10" />
+      <span className="hidden flex-col leading-none min-[440px]:flex">
+        <span className="whitespace-nowrap font-display text-xl sm:text-2xl">El Oasis</span>
+        <span className="mt-1 hidden text-[0.6rem] font-semibold uppercase tracking-[0.4em] text-duna sm:block">
           Cine · Bogotá
         </span>
       </span>

@@ -2,9 +2,11 @@ import { useEffect } from 'react'
 import { Route, Routes, useLocation } from 'react-router-dom'
 import Encabezado from './components/Encabezado.jsx'
 import PiePagina from './components/PiePagina.jsx'
+import RutaProtegida from './components/RutaProtegida.jsx'
 import Cartelera from './pages/Cartelera.jsx'
 import Compra from './pages/Compra.jsx'
 import DetallePelicula from './pages/DetallePelicula.jsx'
+import Ingresar from './pages/Ingresar.jsx'
 import NoEncontrada from './pages/NoEncontrada.jsx'
 import Reportes from './pages/Reportes.jsx'
 
@@ -24,7 +26,15 @@ export default function App() {
           <Route path="/" element={<Cartelera />} />
           <Route path="/pelicula/:id" element={<DetallePelicula />} />
           <Route path="/comprar/:idFuncion" element={<Compra />} />
-          <Route path="/reportes" element={<Reportes />} />
+          <Route path="/ingresar" element={<Ingresar />} />
+          <Route
+            path="/reportes"
+            element={
+              <RutaProtegida>
+                <Reportes />
+              </RutaProtegida>
+            }
+          />
           <Route path="*" element={<NoEncontrada />} />
         </Routes>
       </main>

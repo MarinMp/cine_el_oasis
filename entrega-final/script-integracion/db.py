@@ -24,6 +24,7 @@ cliente_mongo = MongoClient(
     MONGODB_URI,
     tlsCAFile=certifi.where(),
     serverSelectionTimeoutMS=8000,
+    tz_aware=True,
 )
 mongo = cliente_mongo["el_oasis"]
 

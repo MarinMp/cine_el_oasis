@@ -1,14 +1,18 @@
 from collections import Counter
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Literal
 
 import psycopg
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
+from pymongo.errors import PyMongoError
 
-from db import FECHA_SIMULADA, conexion_pg
+from db import FECHA_SIMULADA, conexion_pg, mongo
 
 router = APIRouter(tags=["Ventas"])
+
+# Las fechas de PostgreSQL estan en hora de Colombia (UTC-5); MongoDB guarda en UTC
+HORA_COLOMBIA = timezone(timedelta(hours=-5))
 
 
 class Boleta(BaseModel):
@@ -46,6 +50,7 @@ MENSAJES_RESTRICCION = {
 
 SQL_VENTA = """
     SELECT v.id_venta,
+           v.id_espectador,
            v.fecha_hora,
            v.canal,
            v.medio_pago,
@@ -141,15 +146,50 @@ def leer_venta(conn, id_venta: int):
     return venta
 
 
+def armar_comprobante(venta: dict) -> dict:
+    """Documento que se guarda en MongoDB con la misma compra registrada en PostgreSQL."""
+    return {
+        "id_venta": venta["id_venta"],
+        "id_espectador": venta["id_espectador"],
+        "id_funcion": venta["id_funcion"],
+        "id_pelicula": venta["id_pelicula"],
+        "pelicula": venta["titulo"],
+        "espectador": venta["espectador"],
+        "funcion": {
+            "fecha": venta["fecha"].isoformat(),
+            "hora_inicio": venta["hora_inicio"].isoformat(),
+            "sala": venta["sala"],
+            "tipo_sala": venta["tipo_sala"],
+        },
+        "boletas": [
+            {
+                "categoria": linea["categoria"],
+                "cantidad": linea["cantidad"],
+                "precio_unitario": float(linea["precio_unitario"]),
+                "subtotal": float(linea["subtotal"]),
+            }
+            for linea in venta["detalle"]
+        ],
+        "total": float(venta["total"]),
+        "medio_pago": venta["medio_pago"],
+        "canal": venta["canal"],
+        "descuento_miercoles": venta["descuento_miercoles"],
+        "fecha_compra": venta["fecha_hora"].replace(tzinfo=HORA_COLOMBIA),
+        "estado": "EMITIDO",
+        "registrado_en": datetime.now(timezone.utc),
+    }
+
+
 @router.post("/ventas", status_code=201)
 def registrar_venta(compra: Compra):
-    """Registra una compra en linea. El precio de cada boleta, el total de la venta, las
-    validaciones de aforo, tipo de sala y maximo de boletas, y la auditoria los hacen los
-    triggers de PostgreSQL."""
+    """Transaccion cruzada: la compra se registra en PostgreSQL (venta y detalle, validados y
+    calculados por los triggers) y su comprobante en MongoDB. Si MongoDB falla, se deshace la
+    venta en PostgreSQL; si el COMMIT de PostgreSQL falla, se borra el comprobante de MongoDB."""
     cantidades = Counter()
     for boleta in compra.boletas:
         cantidades[boleta.id_tipo_boleta] += boleta.cantidad
 
+    id_comprobante = None
     try:
         with conexion_pg() as conn:
             id_espectador = obtener_espectador(conn, compra.comprador)
@@ -164,7 +204,21 @@ def registrar_venta(compra: Compra):
                     "INSERT INTO detalle_venta (id_venta, id_tipo_boleta, cantidad) VALUES (%s, %s, %s)",
                     (id_venta, id_tipo_boleta, cantidad),
                 )
-            return leer_venta(conn, id_venta)
+            venta = leer_venta(conn, id_venta)
+
+            # Segundo motor: si MongoDB no guarda el comprobante, la excepcion sale del bloque
+            # y PostgreSQL hace ROLLBACK de la venta
+            try:
+                id_comprobante = mongo.comprobantes_venta.insert_one(armar_comprobante(venta)).inserted_id
+            except PyMongoError:
+                raise HTTPException(
+                    status_code=503,
+                    detail={
+                        "mensaje": "MongoDB no respondió, así que la compra no se guardó en ninguna de las dos bases.",
+                        "origen": "mongodb",
+                    },
+                )
+        # Al salir del bloque sin errores, PostgreSQL hace COMMIT
 
     except psycopg.errors.RaiseException as error:
         # Rechazo de un trigger (RAISE EXCEPTION): no se guarda nada de la compra
@@ -186,12 +240,25 @@ def registrar_venta(compra: Compra):
                 "origen": "restriccion",
             },
         )
+    except psycopg.Error:
+        # El COMMIT de PostgreSQL fallo despues de escribir en MongoDB: se compensa
+        if id_comprobante is not None:
+            mongo.comprobantes_venta.delete_one({"_id": id_comprobante})
+        raise
+
+    venta["mongodb"] = {"coleccion": "comprobantes_venta", "id": str(id_comprobante)}
+    return venta
 
 
 @router.get("/ventas/{id_venta}")
 def consultar_venta(id_venta: int):
+    """La venta desde PostgreSQL y su comprobante desde MongoDB."""
     with conexion_pg() as conn:
         venta = leer_venta(conn, id_venta)
     if venta is None:
         raise HTTPException(status_code=404, detail="Venta no encontrada")
+    try:
+        venta["comprobante_mongo"] = mongo.comprobantes_venta.find_one({"id_venta": id_venta}, {"_id": 0})
+    except PyMongoError:
+        venta["comprobante_mongo"] = None
     return venta

@@ -13,6 +13,7 @@ import {
 import useDatos from '../useDatos.js'
 
 const PESTANAS = [
+  { id: 'integracion', texto: 'Integración' },
   { id: 'postgresql', texto: 'PostgreSQL' },
   { id: 'mongodb', texto: 'MongoDB' },
   { id: 'administracion', texto: 'Administración' },
@@ -27,6 +28,7 @@ const cargarIncidentes = () => api.reporte('incidentes')
 const cargar3D = () => api.reporte('peliculas-3d-subtituladas')
 const cargarResenas = () => Promise.all([api.reporte('resenas-sin-respuesta'), api.peliculas()])
 const cargarEspeciales = () => api.reporte('funciones-especiales')
+const cargarComprobantes = () => api.integracion('comprobantes?limite=10')
 
 function CampoFecha({ etiqueta: texto, valor, onCambio }) {
   return (
@@ -34,6 +36,112 @@ function CampoFecha({ etiqueta: texto, valor, onCambio }) {
       {texto}
       <input type="date" className="input input-sm w-44" value={valor} onChange={(e) => onCambio(e.target.value)} />
     </label>
+  )
+}
+
+// ---------------------------------------------------------------- Integracion
+
+function VentasEIncidentes() {
+  const [borrador, setBorrador] = useState({ inicio: '2026-10-12', fin: '2026-10-21' })
+  const [periodo, setPeriodo] = useState(borrador)
+  const cargar = useCallback(
+    () => api.integracion(`salas?inicio=${periodo.inicio}&fin=${periodo.fin}`),
+    [periodo],
+  )
+  const estado = useDatos(cargar)
+  const salas = estado.datos?.salas ?? []
+  const maximo = Math.max(0, ...salas.map((s) => s.recaudo))
+
+  return (
+    <Reporte
+      titulo="Ventas e incidentes por sala"
+      base="PostgreSQL + MongoDB"
+      descripcion="Para cada sala, las boletas y el recaudo del periodo (PostgreSQL) junto a los incidentes reportados en ella (MongoDB), unidos por el id de la sala."
+      tecnica="Caso de uso de integración · consulta SQL agregada + aggregate de MongoDB, combinados en la API"
+      estado={estado}
+      controles={
+        <form
+          className="flex flex-wrap items-end gap-3"
+          onSubmit={(e) => {
+            e.preventDefault()
+            setPeriodo({ ...borrador })
+          }}
+        >
+          <CampoFecha etiqueta="Desde" valor={borrador.inicio} onCambio={(v) => setBorrador({ ...borrador, inicio: v })} />
+          <CampoFecha etiqueta="Hasta" valor={borrador.fin} onCambio={(v) => setBorrador({ ...borrador, fin: v })} />
+          <button type="submit" className="btn btn-secondary btn-sm">
+            Cruzar datos
+          </button>
+        </form>
+      }
+    >
+      <Tabla
+        clave={(s) => s.id_sala}
+        filas={salas}
+        columnas={[
+          { titulo: 'Sala', valor: (s) => <span className="font-semibold">{s.sala}</span> },
+          { titulo: 'Tipo', valor: (s) => <span className="badge badge-sm badge-secondary">{s.tipo_sala}</span> },
+          { titulo: 'Funciones', derecha: true, valor: (s) => s.funciones },
+          { titulo: 'Boletas', derecha: true, valor: (s) => s.boletas },
+          { titulo: 'Recaudo', derecha: true, valor: (s) => <Barra valor={s.recaudo} maximo={maximo} texto={pesos(s.recaudo)} /> },
+          { titulo: 'Incidentes', derecha: true, valor: (s) => s.incidentes },
+          { titulo: 'Pendientes', derecha: true, valor: (s) => s.pendientes },
+          { titulo: 'Retraso', derecha: true, valor: (s) => (s.minutos_retraso ? `${s.minutos_retraso} min` : '—') },
+          {
+            titulo: 'Por cada 100 boletas',
+            derecha: true,
+            valor: (s) => (s.incidentes_por_100_boletas == null ? '—' : s.incidentes_por_100_boletas),
+          },
+        ]}
+      />
+      {estado.datos && (
+        <p className="mt-4 text-xs text-base-content/80">
+          {estado.datos.incidentes_sin_sala} incidentes del periodo no están asociados a una sala (por ejemplo, en el
+          ingreso o los pasillos) y no se cuentan en la tabla.
+        </p>
+      )}
+    </Reporte>
+  )
+}
+
+function Comprobantes() {
+  const estado = useDatos(cargarComprobantes)
+  return (
+    <Reporte
+      titulo="Transacción cruzada: comprobantes de venta"
+      base="PostgreSQL + MongoDB"
+      descripcion="Cada compra guarda la venta en PostgreSQL y su comprobante en MongoDB en la misma operación. Aquí se comparan los últimos comprobantes con la venta guardada en PostgreSQL."
+      tecnica="Colección comprobantes_venta · si MongoDB falla se hace ROLLBACK en PostgreSQL; si falla el COMMIT se borra el comprobante"
+      estado={estado}
+      controles={
+        <button type="button" className="btn btn-secondary btn-sm" onClick={estado.recargar}>
+          Volver a cargar
+        </button>
+      }
+    >
+      <Tabla
+        clave={(c) => c.id_venta}
+        filas={estado.datos}
+        vacio="Todavía no hay comprobantes. Haz una compra desde la cartelera y vuelve a cargar."
+        columnas={[
+          { titulo: 'Venta', derecha: true, valor: (c) => c.id_venta },
+          { titulo: 'Película', valor: (c) => <span className="font-semibold">{c.pelicula}</span> },
+          { titulo: 'Espectador', valor: (c) => c.espectador },
+          { titulo: 'Boletas', derecha: true, valor: (c) => c.boletas.reduce((suma, b) => suma + b.cantidad, 0) },
+          { titulo: 'Total', derecha: true, valor: (c) => pesos(c.total) },
+          { titulo: 'Registrado', valor: (c) => fechaHora(c.registrado_en) },
+          {
+            titulo: 'En las dos bases',
+            valor: (c) =>
+              c.en_postgresql && c.coincide_total ? (
+                <span className="badge badge-sm badge-secondary">Coinciden</span>
+              ) : (
+                <span className="badge badge-sm badge-error">No coinciden</span>
+              ),
+          },
+        ]}
+      />
+    </Reporte>
   )
 }
 
@@ -430,7 +538,7 @@ function Procedimiento({ titulo, descripcion, nota, campos, valoresIniciales, ru
 // ---------------------------------------------------------------- Pagina
 
 export default function Reportes() {
-  const [pestana, setPestana] = useState('postgresql')
+  const [pestana, setPestana] = useState('integracion')
 
   return (
     <>
@@ -459,6 +567,13 @@ export default function Reportes() {
             </button>
           ))}
         </div>
+
+        {pestana === 'integracion' && (
+          <div className="flex flex-col gap-6">
+            <VentasEIncidentes />
+            <Comprobantes />
+          </div>
+        )}
 
         {pestana === 'postgresql' && (
           <div className="flex flex-col gap-6">

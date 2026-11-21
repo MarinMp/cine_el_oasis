@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { api } from '../api.js'
 import Afiche from '../components/Afiche.jsx'
 import { AvisoError, Fuente } from '../components/Avisos.jsx'
 import Dunas from '../components/Dunas.jsx'
+import useDatos from '../useDatos.js'
 import {
   clasificacionCorta,
   clasificacionPais,
   duracion,
+  fechaHora,
   fechaLarga,
   hora,
   nombreGenero,
@@ -121,6 +123,70 @@ function FichaTecnica({ ficha }) {
   )
 }
 
+function Resenas({ idPelicula }) {
+  const cargar = useCallback(() => api.resenas(idPelicula), [idPelicula])
+  const { datos, error, cargando } = useDatos(cargar)
+
+  return (
+    <section className="mt-12" aria-labelledby="titulo-resenas">
+      <div className="mb-2 flex flex-wrap items-center gap-3">
+        <h2 id="titulo-resenas" className="font-display text-3xl">
+          Reseñas
+        </h2>
+        <Fuente base="MongoDB" />
+        <Fuente base="PostgreSQL" />
+      </div>
+      <p className="mb-6 text-sm text-base-content/80">
+        Las reseñas vienen de MongoDB; el nombre del espectador y la compra que las respalda, de PostgreSQL.
+      </p>
+      {cargando && <div className="skeleton h-28 w-full bg-base-200" />}
+      {error && <AvisoError error={error} titulo="No se pudieron cargar las reseñas." />}
+      {datos && datos.total === 0 && <p className="rounded-box bg-base-200 p-6">Esta película todavía no tiene reseñas.</p>}
+      {datos && datos.total > 0 && (
+        <>
+          <p className="mb-4 text-sm">
+            <span className="font-display text-2xl">{datos.promedio}</span> de 5 · {datos.total}{' '}
+            {datos.total === 1 ? 'reseña' : 'reseñas'}
+          </p>
+          <ul className="flex flex-col gap-4">
+            {datos.resenas.map((resena) => (
+              <li key={`${resena.id_espectador}-${resena.fecha}`} className="rounded-box border border-base-300 bg-base-100 p-5 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-semibold">
+                    <span aria-hidden="true">{'★'.repeat(resena.calificacion)}{'☆'.repeat(5 - resena.calificacion)}</span>
+                    <span className="sr-only">{resena.calificacion} de 5 estrellas</span>
+                    <span className="ml-2">{resena.espectador ?? 'Espectador'}</span>
+                  </p>
+                  {resena.compra_verificada ? (
+                    <span className="badge badge-sm badge-secondary">Compra verificada</span>
+                  ) : (
+                    <span className="badge badge-sm badge-outline">Sin compra asociada</span>
+                  )}
+                </div>
+                <p className="mt-3 font-display text-lg">{resena.titulo}</p>
+                <p className="mt-1">{resena.texto}</p>
+                {resena.compra && (
+                  <p className="mt-3 text-xs text-base-content/80">
+                    Compra N.º {resena.compra.id_venta} · {resena.compra.boletas}{' '}
+                    {resena.compra.boletas === 1 ? 'boleta' : 'boletas'} para el {fechaLarga(resena.compra.fecha_funcion)} en{' '}
+                    {resena.compra.sala}
+                  </p>
+                )}
+                {resena.respuesta_empresa && (
+                  <p className="mt-3 rounded-box bg-base-200 p-3 text-xs">
+                    <span className="font-semibold">Respuesta del cine:</span> {resena.respuesta_empresa.texto}
+                  </p>
+                )}
+                <p className="mt-2 text-xs text-base-content/70">{fechaHora(resena.fecha)}</p>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </section>
+  )
+}
+
 export default function DetallePelicula() {
   const { id } = useParams()
   const [pelicula, setPelicula] = useState(null)
@@ -208,6 +274,7 @@ export default function DetallePelicula() {
               </div>
             ))
           )}
+          <Resenas idPelicula={pelicula.id_pelicula} />
         </section>
 
         <aside aria-labelledby="titulo-ficha">

@@ -1,12 +1,14 @@
 from datetime import date
 
 import psycopg
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from auth import requiere_admin
 from db import conexion_pg, mongo
 
-router = APIRouter(tags=["Reportes"])
+# Todas las rutas de este archivo exigen sesion de administrador
+router = APIRouter(tags=["Reportes"], dependencies=[Depends(requiere_admin)])
 
 
 def error_procedimiento(error: psycopg.errors.RaiseException):

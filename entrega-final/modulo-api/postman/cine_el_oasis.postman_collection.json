@@ -1,13 +1,25 @@
 {
   "info": {
     "name": "Cine El Oasis API",
-    "description": "Pruebas de la API del Cine El Oasis (FastAPI + PostgreSQL en Neon + MongoDB Atlas). Antes de ejecutarla, encender la API con: uvicorn main:app --reload",
+    "description": "Pruebas de la API del Cine El Oasis (FastAPI + PostgreSQL en Neon + MongoDB Atlas). Antes de ejecutarla, encender la API con: uvicorn main:app --reload. Para las pruebas de reportes, llenar el valor actual de admin_usuario y admin_clave en las variables de la coleccion (no se guardan en este archivo).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
     {
       "key": "base_url",
       "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "admin_usuario",
+      "value": ""
+    },
+    {
+      "key": "admin_clave",
+      "value": ""
+    },
+    {
+      "key": "token",
+      "value": ""
     },
     {
       "key": "id_venta",
@@ -129,7 +141,7 @@
       "response": []
     },
     {
-      "name": "Detalle de pelicula (PostgreSQL + MongoDB)",
+      "name": "Caso de uso 1: pelicula con su ficha tecnica (PostgreSQL + MongoDB)",
       "event": [
         {
           "listen": "test",
@@ -230,7 +242,7 @@
       "response": []
     },
     {
-      "name": "Funcion con boletas y requisitos (PostgreSQL + MongoDB)",
+      "name": "Caso de uso 2: funcion con sus requisitos tecnicos (PostgreSQL + MongoDB)",
       "event": [
         {
           "listen": "test",
@@ -265,7 +277,43 @@
       "response": []
     },
     {
-      "name": "Compra en linea",
+      "name": "Caso de uso 3: resenas con la compra que las respalda (MongoDB + PostgreSQL)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "const r = pm.response.json();",
+              "pm.test('Trae las resenas de MongoDB', () => pm.expect(r.resenas).to.be.an('array').that.is.not.empty);",
+              "pm.test('Cada resena trae el nombre del espectador desde PostgreSQL', () => r.resenas.forEach(x => pm.expect(x.espectador).to.be.a('string')));",
+              "pm.test('Verifica la compra en PostgreSQL', () => pm.expect(r.resenas.some(x => x.compra_verificada)).to.be.true);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/integracion/resenas/5",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "integracion",
+            "resenas",
+            "5"
+          ]
+        },
+        "description": "Resenas de Coco (id 5): el texto viene de MongoDB y el espectador y la compra de PostgreSQL."
+      },
+      "response": []
+    },
+    {
+      "name": "Transaccion cruzada: compra en linea (PostgreSQL + MongoDB)",
       "event": [
         {
           "listen": "test",
@@ -280,6 +328,10 @@
               "pm.test('La auditoria registro 1 insercion y 2 actualizaciones', () => {",
               "    pm.expect(r.auditoria.INSERT).to.eql(1);",
               "    pm.expect(r.auditoria.UPDATE).to.eql(2);",
+              "});",
+              "pm.test('Guardo el comprobante en MongoDB', () => {",
+              "    pm.expect(r.mongodb.coleccion).to.eql('comprobantes_venta');",
+              "    pm.expect(r.mongodb.id).to.be.a('string');",
               "});"
             ]
           }
@@ -303,7 +355,7 @@
             "ventas"
           ]
         },
-        "description": "Registra una compra real en PostgreSQL. Si el documento no existe, registra al espectador.",
+        "description": "Registra la venta en PostgreSQL y su comprobante en MongoDB en la misma operacion.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"id_funcion\": 3,\n  \"medio_pago\": \"TARJETA DEBITO\",\n  \"comprador\": {\n    \"documento\": \"1001001001\",\n    \"id_tipo_documento\": 1,\n    \"primer_nombre\": \"Prueba\",\n    \"primer_apellido\": \"Postman\",\n    \"correo\": \"prueba.postman@eloasis.co\"\n  },\n  \"boletas\": [\n    {\n      \"id_tipo_boleta\": 4,\n      \"cantidad\": 2\n    },\n    {\n      \"id_tipo_boleta\": 5,\n      \"cantidad\": 1\n    }\n  ]\n}",
@@ -317,7 +369,7 @@
       "response": []
     },
     {
-      "name": "Consultar la venta",
+      "name": "Consultar la venta en los dos motores",
       "event": [
         {
           "listen": "test",
@@ -325,7 +377,12 @@
             "type": "text/javascript",
             "exec": [
               "pm.test('Responde 200', () => pm.response.to.have.status(200));",
-              "pm.test('Es la venta que se acaba de registrar', () => pm.expect(pm.response.json().id_venta).to.eql(Number(pm.collectionVariables.get('id_venta'))));"
+              "const r = pm.response.json();",
+              "pm.test('Es la venta que se acaba de registrar', () => pm.expect(r.id_venta).to.eql(Number(pm.collectionVariables.get('id_venta'))));",
+              "pm.test('El comprobante de MongoDB coincide con PostgreSQL', () => {",
+              "    pm.expect(r.comprobante_mongo.id_venta).to.eql(r.id_venta);",
+              "    pm.expect(r.comprobante_mongo.total).to.eql(r.total);",
+              "});"
             ]
           }
         }
@@ -344,7 +401,7 @@
             "{{id_venta}}"
           ]
         },
-        "description": "Consulta el comprobante de la venta anterior."
+        "description": "Lee la venta de PostgreSQL y su comprobante de MongoDB."
       },
       "response": []
     },
@@ -382,7 +439,7 @@
             "ventas"
           ]
         },
-        "description": "6 + 5 boletas en la misma compra: trg_detalle_venta_boleta la rechaza y no se guarda nada.",
+        "description": "6 + 5 boletas en la misma compra: trg_detalle_venta_boleta la rechaza y no se guarda nada en ningun motor.",
         "body": {
           "mode": "raw",
           "raw": "{\n  \"id_funcion\": 3,\n  \"medio_pago\": \"TARJETA DEBITO\",\n  \"comprador\": {\n    \"documento\": \"1001001001\"\n  },\n  \"boletas\": [\n    {\n      \"id_tipo_boleta\": 4,\n      \"cantidad\": 6\n    },\n    {\n      \"id_tipo_boleta\": 5,\n      \"cantidad\": 5\n    }\n  ]\n}",
@@ -488,6 +545,231 @@
       "response": []
     },
     {
+      "name": "Reportes sin iniciar sesion",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 401', () => pm.response.to.have.status(401));",
+              "pm.test('Pide iniciar sesion', () => pm.expect(pm.response.json().detail.origen).to.eql('sesion'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/api/reportes/ocupacion",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "reportes",
+            "ocupacion"
+          ]
+        },
+        "description": "Los reportes y la administracion exigen la sesion del administrador."
+      },
+      "response": []
+    },
+    {
+      "name": "Inicio de sesion con clave equivocada",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 401', () => pm.response.to.have.status(401));",
+              "pm.test('No entrega token', () => pm.expect(pm.response.json()).to.not.have.property('token'));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/auth/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "description": "Caso de error del inicio de sesion.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"usuario\": \"{{admin_usuario}}\",\n  \"clave\": \"clave-equivocada\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Inicio de sesion del administrador",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 200', () => pm.expect(pm.response.code, 'Usuario o clave incorrectos: revisar admin_usuario y admin_clave en las variables de la coleccion').to.eql(200));",
+              "const r = pm.response.json();",
+              "pm.collectionVariables.set('token', r.token || '');",
+              "pm.test('Entrega un token firmado', () => {",
+              "    pm.expect(r.token, 'La API no entrego token').to.be.a('string');",
+              "    pm.expect(r.token.split('.')).to.have.lengthOf(2);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/auth/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "description": "Usa las variables admin_usuario y admin_clave y guarda el token para las siguientes peticiones.",
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"usuario\": \"{{admin_usuario}}\",\n  \"clave\": \"{{admin_clave}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Caso de uso 4: ventas e incidentes por sala (PostgreSQL + MongoDB)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "const r = pm.response.json();",
+              "pm.test('Trae las 10 salas', () => pm.expect(r.salas).to.have.lengthOf(10));",
+              "pm.test('Cada sala trae ventas (PostgreSQL) e incidentes (MongoDB)', () => r.salas.forEach(s => pm.expect(s).to.include.keys('boletas', 'recaudo', 'incidentes', 'pendientes')));",
+              "pm.test('Cuenta los 32 incidentes del periodo', () => pm.expect(r.salas.reduce((t, s) => t + s.incidentes, 0) + r.incidentes_sin_sala).to.eql(32));"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/integracion/salas?inicio=2026-10-12&fin=2026-10-21",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "integracion",
+            "salas"
+          ],
+          "query": [
+            {
+              "key": "inicio",
+              "value": "2026-10-12"
+            },
+            {
+              "key": "fin",
+              "value": "2026-10-21"
+            }
+          ]
+        },
+        "description": "Cruce de ventas por sala con los incidentes reportados en cada sala."
+      },
+      "response": []
+    },
+    {
+      "name": "Comprobantes de la transaccion cruzada",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Responde 200', () => pm.response.to.have.status(200));",
+              "const r = pm.response.json();",
+              "const venta = (Array.isArray(r) ? r : []).find(c => c.id_venta === Number(pm.collectionVariables.get('id_venta')));",
+              "pm.test('Aparece el comprobante de la compra de esta corrida', () => pm.expect(venta).to.be.an('object'));",
+              "pm.test('Coincide con la venta de PostgreSQL', () => pm.expect(venta && venta.coincide_total).to.be.true);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/integracion/comprobantes?limite=10",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "integracion",
+            "comprobantes"
+          ],
+          "query": [
+            {
+              "key": "limite",
+              "value": "10"
+            }
+          ]
+        },
+        "description": "Ultimos comprobantes de MongoDB comparados con PostgreSQL."
+      },
+      "response": []
+    },
+    {
       "name": "Reporte de ventas por pelicula (procedimiento con cursor)",
       "event": [
         {
@@ -505,7 +787,12 @@
       ],
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
         "url": {
           "raw": "{{base_url}}/api/reportes/ventas-por-pelicula?inicio=2026-10-12&fin=2026-10-18",
           "host": [
@@ -549,7 +836,12 @@
       ],
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
         "url": {
           "raw": "{{base_url}}/api/reportes/ventas-por-pelicula?inicio=2026-10-20&fin=2026-10-12",
           "host": [
@@ -591,7 +883,12 @@
       ],
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
         "url": {
           "raw": "{{base_url}}/api/reportes/ocupacion",
           "host": [
@@ -616,8 +913,10 @@
             "type": "text/javascript",
             "exec": [
               "pm.test('Responde 200', () => pm.response.to.have.status(200));",
-              "const falla = pm.response.json().find(f => f.tipo === 'FALLA_TECNICA');",
+              "const r = pm.response.json();",
+              "const falla = (Array.isArray(r) ? r : []).find(f => f.tipo === 'FALLA_TECNICA');",
               "pm.test('Fallas tecnicas: 16.1 min de retraso promedio en 7 salas', () => {",
+              "    pm.expect(falla, 'No llego el reporte de incidentes').to.be.an('object');",
               "    pm.expect(falla.retraso_promedio_min).to.eql(16.1);",
               "    pm.expect(falla.salas_afectadas).to.eql(7);",
               "});"
@@ -627,7 +926,12 @@
       ],
       "request": {
         "method": "GET",
-        "header": [],
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
         "url": {
           "raw": "{{base_url}}/api/reportes/incidentes",
           "host": [
@@ -660,6 +964,10 @@
       "request": {
         "method": "POST",
         "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          },
           {
             "key": "Content-Type",
             "value": "application/json"

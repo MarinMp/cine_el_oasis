@@ -131,8 +131,9 @@ function Comprobante({ venta }) {
 
       <div className="mt-8 rounded-box border border-base-300 p-6 text-sm">
         <div className="mb-3 flex items-center gap-3">
-          <h2 className="font-semibold uppercase tracking-[0.2em]">Lo que hizo la base de datos</h2>
+          <h2 className="font-semibold uppercase tracking-[0.2em]">Lo que hicieron las bases de datos</h2>
           <Fuente base="PostgreSQL" />
+          <Fuente base="MongoDB" />
         </div>
         <ul className="list-disc space-y-2 pl-5">
           <li>
@@ -150,6 +151,12 @@ function Comprobante({ venta }) {
             {actualizaciones === 1 ? 'actualización' : 'actualizaciones'} en <code>LOG_AUDITORIA</code> (
             <code>trg_auditoria_venta</code>).
           </li>
+          {venta.mongodb && (
+            <li>
+              Guardó el comprobante de la misma compra en MongoDB (colección <code>comprobantes_venta</code>, documento{' '}
+              <code>{venta.mongodb.id}</code>). Si MongoDB hubiera fallado, la venta se habría deshecho en PostgreSQL.
+            </li>
+          )}
         </ul>
       </div>
 
