@@ -339,6 +339,15 @@ El front queda en `http://localhost:5173`. El pie de página muestra si cada bas
 
 4. Probar con Postman: importar `entrega-final/modulo-api/postman/cine_el_oasis.postman_collection.json`, escribir `admin_usuario` y `admin_clave` en el valor actual (*Current value*) de las variables de la colección y ejecutarla con *Run*. Con la API encendida pasan las 65 pruebas. Cada ejecución registra dos ventas de prueba en PostgreSQL, con sus comprobantes en MongoDB.
 
+### Versión publicada
+
+La aplicación también está publicada en Vercel, en el plan gratuito:
+
+- Front: https://cine-el-oasis.vercel.app
+- API: https://cine-el-oasis-api.vercel.app (por ejemplo, `https://cine-el-oasis-api.vercel.app/api/salud`)
+
+Son dos proyectos de Vercel que se publican desde la terminal con `npx vercel --prod`: la API desde `entrega-final/script-integracion`, que Vercel reconoce como FastAPI, y el front desde `entrega-final/modulo-api/frontend`, que reconoce como Vite. El `vercel.json` del front redirige las peticiones de `/api` a la API, así que el navegador solo habla con el front. Los valores del `.env` y `SECRETO_SESION` se configuran en Vercel como variables de entorno de producción, y los archivos `.vercelignore` evitan que se suban los `.env`. Para que la API publicada llegue a MongoDB, la lista de acceso de Atlas permite conexiones desde cualquier IP (`0.0.0.0/0`); el acceso queda protegido por el usuario y la contraseña de la cadena de conexión.
+
 ### Casos de uso de integración
 
 | # | Caso de uso | PostgreSQL | MongoDB | Endpoint | Dónde se ve en el front |
